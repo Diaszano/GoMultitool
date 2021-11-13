@@ -414,6 +414,21 @@
 	status = "okay";
 };
 
+&sdmmc_ext {
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	keep-power-in-suspend;
+	max-frequency = <150000000>;
+	num-slots = <1>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc0ext_clk &sdmmc0ext_cmd &sdmmc0ext_dectn &sdmmc0ext_bus4>;
+	supports-sd;
+	status = "okay";
+};
+
+
 &spdif {
 	#sound-dai-cells = <0>;
 	pinctrl-names = "default";
