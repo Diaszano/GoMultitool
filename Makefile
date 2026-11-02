@@ -23,7 +23,7 @@ lint: ## Run Go static analysis
 	PATH=$(shell go env GOPATH)/bin:$$PATH golangci-lint run --config .golangci.yml ./...
 
 lint-shell: ## Check maintained shell scripts
-	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-shell.sh --check $$(find scripts tests/policy -maxdepth 1 -type f -name '*.sh' | sort)
+	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-shell.sh --check $$(find scripts tests/policy tools/policy -maxdepth 1 -type f -name '*.sh' | sort)
 
 lint-docs: ## Lint Markdown, YAML, and whitespace
 	PATH=$(shell go env GOPATH)/bin:$$PATH PYTHONPATH=$(shell go env GOPATH)/python-tools bash scripts/check-docs.sh --check $$(find README.md CONTRIBUTING.md docs -type f -name '*.md' ! -path 'docs/superpowers/plans/*' | sort) $$(find . -type f \( -name '*.yaml' -o -name '*.yml' \) ! -path './.git/*' ! -path './.tools/*' | sort)
