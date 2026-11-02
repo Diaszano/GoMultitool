@@ -3,7 +3,10 @@ set -Eeuo pipefail
 
 mode=${1:?usage: check-go-format.sh --check|--write [files...]}
 shift
-(($#)) || { echo 'provide at least one Go file' >&2; exit 2; }
+(($#)) || {
+  echo 'provide at least one Go file' >&2
+  exit 2
+}
 
 case "$mode" in
   --write) goimports -w "$@" ;;
@@ -14,5 +17,8 @@ case "$mode" in
       exit 1
     fi
     ;;
-  *) echo 'usage: check-go-format.sh --check|--write [files...]' >&2; exit 2 ;;
+  *)
+    echo 'usage: check-go-format.sh --check|--write [files...]' >&2
+    exit 2
+    ;;
 esac

@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 missing=()
 for tool in go make git; do
-  command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+  command -v "$tool" > /dev/null 2>&1 || missing+=("$tool")
 done
 
 if ((${#missing[@]})); then
