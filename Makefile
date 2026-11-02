@@ -29,19 +29,20 @@ lint-docs: ## Lint Markdown, YAML, and whitespace
 	PATH=$(shell go env GOPATH)/bin:$$PATH PYTHONPATH=$(shell go env GOPATH)/python-tools bash scripts/check-docs.sh --check $$(find README.md CONTRIBUTING.md docs -type f -name '*.md' ! -path 'docs/superpowers/plans/*' | sort) $$(find . -type f \( -name '*.yaml' -o -name '*.yml' \) ! -path './.git/*' ! -path './.tools/*' | sort)
 	git diff --check
 
+GO_TEST_PACKAGES ?= ./...
+
 test: ## Run Go tests
-	go test ./...
+	bash scripts/test-go.sh $(GO_TEST_PACKAGES)
 
 test-race: ## Run Go race tests
-	go test -race ./...
+	go test -race $(GO_TEST_PACKAGES)
 
 build: ## Build the host executable
 	mkdir -p build
 	go build -o build/multitool ./cmd/multitool
 
 build-armv7: ## Build the Linux ARMv7 executable
-	mkdir -p build
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -o build/multitool-linux-armv7 ./cmd/multitool
+	bash scripts/build-armv7.sh build/multitool-linux-armv7
 
 integration-test: ## Run integration tests
 	go test ./...
