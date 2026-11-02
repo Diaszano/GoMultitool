@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+root=$(git rev-parse --show-toplevel)
+exec bash "$root/tools/policy/commit.sh" --file "$1"

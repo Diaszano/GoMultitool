@@ -24,3 +24,7 @@ A ShellCheck 0.11.0 audit found pre-existing findings in the excluded legacy fil
 ## Branch names
 
 Use `feature/`, `fix/`, `hotfix/`, `refactor/`, `docs/`, `chore/`, `test/`, `ci/`, or `release/` followed by a lowercase hyphen-separated description. The protected default branch and semantic release channels (`main`, `next`, `next-major`, `beta`, `alpha`, and `N.x`) are also valid.
+
+## Commit messages
+
+Use Conventional Commit subjects such as `feat(storage): add safe device discovery` or `fix: handle an empty input`. Mark breaking changes with `!` or a `BREAKING CHANGE:` footer. Run `bash scripts/install-git-hooks.sh` to enable the optional local commit hook; CI validates pull request titles with the same policy.
