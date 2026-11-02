@@ -1,6 +1,6 @@
 # RK322x Multitool
 
-This repository preserves the original Linux recovery environment for Rockchip TV boxes while adding a Go command-line application and automated repository tooling. The Go application currently provides `multitool version`; the existing Bash recovery menu remains the device recovery interface.
+This repository preserves the original Linux recovery environment for Rockchip TV boxes while adding a Go command-line application and automated repository tooling. The Go application provides version, storage inventory, and read-only diagnostics commands; the existing Bash recovery menu remains the default device recovery interface until hardware validation is complete.
 
 ## Getting started
 
@@ -19,6 +19,8 @@ See [local setup](docs/development/local-setup.md) for prerequisites and individ
 - [Architecture overview](docs/architecture/overview.md)
 - [Contributing](CONTRIBUTING.md)
 - [Recovery and hardware status](docs/recovery/README.md)
+- [RK3229 recovery procedure](docs/recovery/rk3229.md)
+- [Hardware validation matrix](docs/supported-boards/validation-matrix.md)
 - [Build and release process](docs/releases/README.md)
 - [Security policy](SECURITY.md)
 - [Supported board configurations](docs/architecture/component-inventory.md)

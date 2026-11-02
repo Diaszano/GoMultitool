@@ -6,6 +6,8 @@ The manifest identifies the source commit, image checksum, board target, and eac
 
 Stable manifests require a hardware approval JSON record that matches the target and firmware version, reports `result: passed`, and includes the tester, test time, and evidence reference. `scripts/release-manifest.sh --channel stable` rejects missing or mismatched evidence. This repository does not yet configure an automated stable-image promotion; a reviewer must verify the hardware record before any stable distribution.
 
+The current Go recovery path has not been booted on a physical RK3229. Follow the [hardware smoke test](../../tests/hardware/rk3229-smoke-test.md) and update the [validation matrix](../supported-boards/validation-matrix.md) before requesting stable approval.
+
 The build does not generate an SBOM because the existing image toolchain has no pinned SBOM generator. The manifest and `.sha256` file provide source and artifact integrity metadata; they are not an SBOM.
 
 A hardware approval record has this shape:
