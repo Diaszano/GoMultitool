@@ -9,3 +9,4 @@ sources/multistrap/rootfs/
 .env
 .env.*
 !.env.example
+/dist/
