@@ -13,6 +13,7 @@ import (
 	"github.com/Diaszano/GoMultitool/internal/buildinfo"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	linuxsys "github.com/Diaszano/GoMultitool/internal/infrastructure/linux"
+	"github.com/Diaszano/GoMultitool/internal/presentation/console"
 	"github.com/Diaszano/GoMultitool/internal/presentation/tui"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -24,6 +25,14 @@ func main() {
 		model := tui.NewModel(func() ([]device.Device, error) { return service.Inventory(context.Background()) })
 		_, err := tea.NewProgram(model).Run()
 		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+	if len(os.Args) == 2 && os.Args[1] == "--console" {
+		service := discovery.Service{Catalog: catalog}
+		if err := console.Run(os.Stdin, os.Stdout, service.Inventory); err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -52,6 +61,6 @@ func run(args []string, catalog application.DeviceCatalog, stdout, stderr io.Wri
 		}
 		return 0
 	}
-	_, _ = fmt.Fprintln(stderr, "Usage: multitool version | multitool hardware --json | multitool tui")
+	_, _ = fmt.Fprintln(stderr, "Usage: multitool version | multitool hardware --json | multitool tui | multitool --console")
 	return 2
 }
