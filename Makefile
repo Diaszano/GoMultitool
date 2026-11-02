@@ -12,6 +12,8 @@ setup: ## Install pinned Go tools locally
 	GOBIN=$(shell go env GOPATH)/bin go install mvdan.cc/sh/v3/cmd/shfmt@$$(sed -n 's/^shfmt=//p' .tools-versions)
 	npm install --prefix $(shell go env GOPATH) markdownlint-cli2@$$(sed -n 's/^markdownlint-cli2=//p' .tools-versions)
 	python3 -m pip install --target $(shell go env GOPATH)/python-tools yamllint==$$(sed -n 's/^yamllint=//p' .tools-versions)
+	GOBIN=$(shell go env GOPATH)/bin go install github.com/rhysd/actionlint/cmd/actionlint@$$(sed -n 's/^actionlint=//p' .tools-versions)
+	bash scripts/install-shellcheck.sh
 
 fmt: ## Format Go sources
 	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-go-format.sh --write $$(find cmd internal tests -name '*.go' -type f)
@@ -55,7 +57,7 @@ security: ## Run security checks
 	@echo 'Security checks are not implemented yet' >&2
 	@exit 1
 
-check: fmt-check lint test build ## Run local quality checks
+check: fmt-check lint lint-shell lint-docs test test-race integration-test build-armv7 ## Run all local quality checks
 
 clean: ## Remove generated Go build output
 	rm -rf build
