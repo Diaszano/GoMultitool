@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup fmt fmt-check lint test test-race build build-armv7 integration-test image security check clean lint-shell
+.PHONY: help setup fmt fmt-check lint test test-race build build-armv7 integration-test image security check clean lint-shell lint-docs
 
 help: ## Show available targets
 	@printf 'Available targets:\n'
@@ -10,6 +10,8 @@ setup: ## Install pinned Go tools locally
 	GOBIN=$(shell go env GOPATH)/bin go install golang.org/x/tools/cmd/goimports@$$(sed -n 's/^goimports=//p' .tools-versions)
 	GOBIN=$(shell go env GOPATH)/bin go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$$(sed -n 's/^golangci-lint=//p' .tools-versions)
 	GOBIN=$(shell go env GOPATH)/bin go install mvdan.cc/sh/v3/cmd/shfmt@$$(sed -n 's/^shfmt=//p' .tools-versions)
+	npm install --prefix $(shell go env GOPATH) markdownlint-cli2@$$(sed -n 's/^markdownlint-cli2=//p' .tools-versions)
+	python3 -m pip install --target $(shell go env GOPATH)/python-tools yamllint==$$(sed -n 's/^yamllint=//p' .tools-versions)
 
 fmt: ## Format Go sources
 	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-go-format.sh --write $$(find cmd internal tests -name '*.go' -type f)
@@ -22,6 +24,10 @@ lint: ## Run Go static analysis
 
 lint-shell: ## Check maintained shell scripts
 	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-shell.sh --check $$(find scripts tests/policy -maxdepth 1 -type f -name '*.sh' | sort)
+
+lint-docs: ## Lint Markdown, YAML, and whitespace
+	PATH=$(shell go env GOPATH)/bin:$$PATH PYTHONPATH=$(shell go env GOPATH)/python-tools bash scripts/check-docs.sh --check $$(find README.md CONTRIBUTING.md docs -type f -name '*.md' ! -path 'docs/superpowers/plans/*' | sort) $$(find . -type f \( -name '*.yaml' -o -name '*.yml' \) ! -path './.git/*' ! -path './.tools/*' | sort)
+	git diff --check
 
 test: ## Run Go tests
 	go test ./...

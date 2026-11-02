@@ -20,7 +20,7 @@ Initial reference hardware:
 - Approximately 8 GB internal eMMC
 - MicroSD and USB interfaces
 
-Original project: https://github.com/paolosabatino/multitool
+Original project: [paolosabatino/multitool](https://github.com/paolosabatino/multitool)
 
 The original recovery image and source code must remain available throughout migration.
 
