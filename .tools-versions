@@ -1,2 +1,4 @@
 goimports=v0.47.0
 golangci-lint=v2.15.0
+shellcheck=v0.11.0
+shfmt=v3.14.1
