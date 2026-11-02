@@ -30,7 +30,7 @@ lint: ## Run Go static analysis
 	PATH=$(shell go env GOPATH)/bin:$$PATH golangci-lint run --config .golangci.yml ./...
 
 lint-shell: ## Check maintained shell scripts
-	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-shell.sh --check $$(find scripts tests/policy tools/policy -maxdepth 1 -type f -name '*.sh' | sort)
+	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-shell.sh --check $$(find scripts tests/policy tests/integration tools/policy -maxdepth 1 -type f -name '*.sh' | sort)
 
 lint-docs: ## Lint Markdown, YAML, and whitespace
 	PATH=$(shell go env GOPATH)/bin:$$PATH PYTHONPATH=$(shell go env GOPATH)/python-tools bash scripts/check-docs.sh --check $$(find README.md CONTRIBUTING.md docs -type f -name '*.md' ! -path 'docs/superpowers/plans/*' | sort) $$(find . -type f \( -name '*.yaml' -o -name '*.yml' \) ! -path './.git/*' ! -path './.tools/*' ! -path './dist/*' ! -path './build/*' | sort)
@@ -53,10 +53,12 @@ build-armv7: ## Build the Linux ARMv7 executable
 
 integration-test: ## Run integration tests
 	go test ./...
+	bash tests/integration/image_build_test.sh
 
-image: ## Build a recovery image (requires privileged Linux image tools)
-	@echo 'Image build workflow is not implemented yet' >&2
-	@exit 1
+IMAGE_TARGET ?= rk322x
+
+image: ## Build a recovery image (requires root and privileged Linux image tools)
+	bash scripts/build-image.sh "$(IMAGE_TARGET)"
 
 security: ## Run vulnerability and secret checks
 	PATH=$(shell go env GOPATH)/bin:$$PATH govulncheck ./...
