@@ -79,7 +79,7 @@ trap cleanup EXIT
 bash "$root/scripts/build-armv7.sh" "$temp_dir/multitool"
 readelf -h "$temp_dir/multitool" | grep -q 'Machine:.*ARM'
 bash "$root/build/rootfs/install-multitool.sh" "$root/sources/multistrap/overlays" "$temp_dir/multitool"
-(cd "$root" && bash create_image.sh "$target")
+(cd "$root" && ROOTFS_IMAGE="$temp_dir/root.img" bash create_image.sh "$target")
 
 loop_device=$(losetup --find --show --partscan "$raw_image")
 for _ in {1..30}; do
