@@ -2,3 +2,10 @@ dist-*
 sources/multistrap/rootfs/
 /build/
 
+/.tools/
+/mnt/
+/mount/
+/secrets/
+.env
+.env.*
+!.env.example

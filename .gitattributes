@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.img binary
+*.bin binary
+*.dtb binary
+*.elf binary
+*.itb binary
+*.patch text eol=lf

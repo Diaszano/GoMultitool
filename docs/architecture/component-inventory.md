@@ -3,9 +3,7 @@
 Inventory at baseline commit `d7dc392fe33850f5975aa466538fd889629c430c`.
 
 | Path | Contents |
-
-|---|---|
-
+| --- | --- |
 | `create_image.sh` | Builds a board-specific recovery image using host image and filesystem tools. |
 | `sources/multistrap/` | Root filesystem bootstrap, init, menu, hooks, and overlays. |
 | `sources/rk322x*` | RK322x board configuration, Linux configuration, device tree, bootloader, and TrustZone firmware. |
@@ -14,6 +12,7 @@ Inventory at baseline commit `d7dc392fe33850f5975aa466538fd889629c430c`.
 | `LICENSE` | Repository GPL v2 license text; individual assets may carry additional terms. |
 
 ## Tracked source files
+
 The following list is generated from the baseline commit so it can be compared directly with Git:
 
 ```text
