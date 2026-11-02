@@ -11,11 +11,24 @@ import (
 	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/discovery"
 	"github.com/Diaszano/GoMultitool/internal/buildinfo"
+	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	linuxsys "github.com/Diaszano/GoMultitool/internal/infrastructure/linux"
+	"github.com/Diaszano/GoMultitool/internal/presentation/tui"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
 	catalog := linuxsys.SysfsCatalog{SysRoot: "/sys", ProcRoot: "/proc"}
+	if len(os.Args) == 2 && os.Args[1] == "tui" {
+		service := discovery.Service{Catalog: catalog}
+		model := tui.NewModel(func() ([]device.Device, error) { return service.Inventory(context.Background()) })
+		_, err := tea.NewProgram(model).Run()
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
 	os.Exit(run(os.Args[1:], catalog, os.Stdout, os.Stderr))
 }
 
@@ -39,6 +52,6 @@ func run(args []string, catalog application.DeviceCatalog, stdout, stderr io.Wri
 		}
 		return 0
 	}
-	_, _ = fmt.Fprintln(stderr, "Usage: multitool version | multitool hardware --json")
+	_, _ = fmt.Fprintln(stderr, "Usage: multitool version | multitool hardware --json | multitool tui")
 	return 2
 }
