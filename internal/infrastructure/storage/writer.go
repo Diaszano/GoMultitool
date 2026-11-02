@@ -6,6 +6,7 @@ import (
 )
 
 // OpenWriter opens an existing block-device path for synchronized writes.
+// OpenWriter opens an existing device file for readback-capable writes.
 func OpenWriter(ctx context.Context, path string) (*os.File, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
