@@ -1,7 +1,12 @@
 # Hardware validation matrix
 
-| Target | Source review | Image build | Physical boot | Storage safety | Backup/restore | Release status |
-|---|---|---|---|---|---|---|
-| RK322x reference | Complete | Privileged build unavailable in current environment | Not run: no board or known-working card | Automated tests pass; hardware behavior unverified | Not run on hardware | Experimental only |
+## RK322x reference
+
+- Source review: complete.
+- Image build: privileged build unavailable in current environment.
+- Physical boot: not run; no board or known-working card is available.
+- Storage safety: automated tests pass; hardware behavior is unverified.
+- Backup and restore: not run on hardware.
+- Release status: experimental only.
 
 Do not promote a target to stable until the [RK3229 smoke test](../../tests/hardware/rk3229-smoke-test.md) is complete and a hardware approval record is reviewed.

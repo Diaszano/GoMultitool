@@ -115,7 +115,11 @@ if [[ $? -eq 0 ]]; then
 	umount "/mnt"
 fi
 
-if [[ -f /usr/local/bin/multitool.sh ]]; then
+if [[ -x /usr/local/sbin/multitool-init ]]; then
+	while true; do
+		setsid /bin/bash /usr/local/sbin/multitool-init <> /dev/tty1 >&0 2>&1
+	done
+elif [[ -f /usr/local/bin/multitool.sh ]]; then
 	while true; do
 		setsid /bin/bash /usr/local/bin/multitool.sh <> /dev/tty1 >&0 2>&1	
 	done
