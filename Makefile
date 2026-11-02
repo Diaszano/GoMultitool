@@ -14,6 +14,9 @@ setup: ## Install pinned Go tools locally
 	python3 -m pip install --target $(shell go env GOPATH)/python-tools yamllint==$$(sed -n 's/^yamllint=//p' .tools-versions)
 	GOBIN=$(shell go env GOPATH)/bin go install github.com/rhysd/actionlint/cmd/actionlint@$$(sed -n 's/^actionlint=//p' .tools-versions)
 	bash scripts/install-shellcheck.sh
+	GOBIN=$(shell go env GOPATH)/bin go install golang.org/x/vuln/cmd/govulncheck@$$(sed -n 's/^govulncheck=//p' .tools-versions)
+	GOBIN=$(shell go env GOPATH)/bin go install github.com/zricethezav/gitleaks/v8@$$(sed -n 's/^gitleaks=//p' .tools-versions)
+	bash scripts/install-zizmor.sh
 
 fmt: ## Format Go sources
 	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-go-format.sh --write $$(find cmd internal tests -name '*.go' -type f)
@@ -53,9 +56,11 @@ image: ## Build a recovery image (requires privileged Linux image tools)
 	@echo 'Image build workflow is not implemented yet' >&2
 	@exit 1
 
-security: ## Run security checks
-	@echo 'Security checks are not implemented yet' >&2
-	@exit 1
+security: ## Run vulnerability and secret checks
+	PATH=$(shell go env GOPATH)/bin:$$PATH govulncheck ./...
+	PATH=$(shell go env GOPATH)/bin:$$PATH gitleaks dir . --redact --no-banner
+	PATH=$(shell go env GOPATH)/bin:$$PATH actionlint .github/workflows/*.yml
+	PATH=$(shell go env GOPATH)/bin:$$PATH zizmor --offline .github/workflows
 
 check: fmt-check lint lint-shell lint-docs test test-race integration-test build-armv7 ## Run all local quality checks
 
