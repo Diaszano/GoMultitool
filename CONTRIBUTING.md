@@ -28,3 +28,7 @@ Use `feature/`, `fix/`, `hotfix/`, `refactor/`, `docs/`, `chore/`, `test/`, `ci/
 ## Commit messages
 
 Use Conventional Commit subjects such as `feat(storage): add safe device discovery` or `fix: handle an empty input`. Mark breaking changes with `!` or a `BREAKING CHANGE:` footer. Run `bash scripts/install-git-hooks.sh` to enable the optional local commit hook; CI validates pull request titles with the same policy.
+
+## Releases
+
+Releases are selected from Conventional Commits: `fix` is a patch, `feat` is a minor, and breaking changes are major after `1.0.0`. Before `1.0.0`, breaking changes are minor. Documentation and maintenance commits do not release. See [the versioning policy](docs/releases/versioning.md).

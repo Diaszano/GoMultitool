@@ -1,0 +1,11 @@
+{
+  "provider": "github",
+  "commit-analyzer": "default",
+  "ci-condition": "github",
+  "changelog-generator": "default",
+  "changelog": "CHANGELOG.md",
+  "files-updater": [],
+  "hooks": [],
+  "allow-no-changes": true,
+  "allow-initial-development-versions": true
+}
