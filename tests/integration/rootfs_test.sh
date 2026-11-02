@@ -11,5 +11,5 @@ bash "$root/build/rootfs/install-multitool.sh" "$work/rootfs" "$work/multitool"
 [[ -x "$work/rootfs/usr/local/sbin/multitool-init" ]]
 readelf -h "$work/rootfs/usr/local/bin/multitool" | grep -q 'Machine:.*ARM'
 grep -q 'multitool.sh' "$work/rootfs/usr/local/sbin/multitool-init"
-grep -q '/usr/local/sbin/multitool-init' "$root/sources/multistrap/init"
+grep -q '/usr/local/bin/multitool.sh' "$root/sources/multistrap/init"
 grep -q 'packages=util-linux' "$root/sources/multistrap/multistrap.conf"
