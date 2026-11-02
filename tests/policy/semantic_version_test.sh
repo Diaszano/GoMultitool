@@ -28,8 +28,14 @@ run_case() {
       return 1
     }
   else
-    [[ $status -eq 0 ]] && grep -Fq "$expected" <<< "$output" || {
+    if [[ $status -ne 0 ]] || ! grep -Fq "$expected" <<< "$output"; then
       printf '%s\n' "$output" >&2
+      return 1
+    fi
+    local retry_status=0 retry_output
+    retry_output=$(cd "$repo" && PATH="$(go env GOPATH)/bin:$PATH" semantic-release --provider git --ci-condition default --no-ci --dry --allow-initial-development-versions 2>&1) || retry_status=$?
+    [[ $retry_status -eq 0 && "$retry_output" == *"new version: $expected"* ]] || {
+      printf '%s\n' "$retry_output" >&2
       return 1
     }
   fi

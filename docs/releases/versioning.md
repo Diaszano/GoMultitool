@@ -4,4 +4,4 @@ Releases follow Conventional Commits. `fix` produces a patch release, `feat` a m
 
 The project starts in development mode: the first release is `0.1.0`; before `1.0.0`, breaking changes advance the minor version. After `1.0.0`, breaking changes advance the major version. A change with no release impact leaves the version unchanged.
 
-`.semrelrc` uses go-semantic-release with GitHub as the provider and `CHANGELOG.md` as the generated changelog. Local version-policy tests use an isolated Git repository and dry-run mode; they do not create tags or releases.
+`.semrelrc` uses go-semantic-release with the Git provider to create version tags. GoReleaser creates the GitHub release and uploads its artifacts. `CHANGELOG.md` is the configured generated changelog. Local version-policy tests use an isolated Git repository and dry-run mode; they do not create tags or releases.

@@ -1,5 +1,5 @@
 {
-  "provider": "github",
+  "provider": "git",
   "commit-analyzer": "default",
   "ci-condition": "github",
   "changelog-generator": "default",
