@@ -12,6 +12,8 @@ The script backs up selected MMC devices as gzip streams into `MULTITOOL/backups
 
 The Go application may replace menu presentation, read-only inventory, image inspection, backup/restore orchestration, and diagnostics only as corresponding safeguards and recovery fallbacks are implemented. `create_image.sh`, board boot components, and the existing shell flow remain the fallback until equivalent behavior is validated on the reference hardware. Bootloader, kernel, and TrustZone firmware are preserved as supplied.
 
+The recovery root filesystem now includes the ARMv7 Go executable and an opt-in `multitool-init` dispatcher. The existing `sbin/init` continues to launch the legacy shell menu; setting `MULTITOOL_GO_RUNTIME=1` in a controlled test environment selects the Go console, while the default path remains the legacy menu. `util-linux` provides the existing `mount`, `blkid`, and `lsblk` commands.
+
 ## Source and image evidence
 
 The repository contains source and boot-component files but no complete known-working recovery-card image. SHA-256 values for the tracked RK322x components are recorded in [`../supported-boards/rk3229-reference.md`](../supported-boards/rk3229-reference.md); they identify repository inputs, not a verified assembled image. No claim of successful physical boot is made by this source review.

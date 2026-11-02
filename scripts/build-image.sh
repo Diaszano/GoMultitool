@@ -74,7 +74,7 @@ trap cleanup EXIT
 
 bash "$root/scripts/build-armv7.sh" "$temp_dir/multitool"
 readelf -h "$temp_dir/multitool" | grep -q 'Machine:.*ARM'
-install -m 0755 "$temp_dir/multitool" "$overlay_binary"
+bash "$root/build/rootfs/install-multitool.sh" "$root/sources/multistrap/overlays" "$temp_dir/multitool"
 rm -f "$root/dist-$target/root.img" "$raw_image"
 (cd "$root" && bash create_image.sh "$target")
 
