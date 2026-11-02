@@ -18,3 +18,7 @@ Then build an image for the appropriate board (root is required, as the script m
 sudo ./create_image.sh $board
 ```
 See `sources/*.conf` for supported board configurations; the resulting image can be found at `dist-$board/multitool.img`.
+
+## Preserving the original recovery system
+
+The original Bash recovery menu, board assets, and image builder remain available while the Go application is developed. See [the upstream baseline](docs/architecture/upstream-baseline.md) and [component inventory](docs/architecture/component-inventory.md) before changing boot components.
