@@ -1,0 +1,14 @@
+RK322x legacy menu from sources/multistrap/multitool.sh (baseline source review)
+
+1 Backup flash
+2 Restore flash
+3 Erase flash
+4 Drop to Bash shell
+5 Burn image to flash
+A Change DDR Command Rate (only without detected NAND)
+8 Reboot
+9 Shutdown
+
+When NAND is detected, options 6 (Install Jump start on NAND) and 7
+(Install Armbian via steP-nand) are also offered. The menu is conditional;
+this fixture records the RK322x non-NAND case and the additional NAND entries.
