@@ -2,33 +2,33 @@
 
 ## Development setup
 
-Install Go 1.27.3 and [mise](https://mise.jdx.dev/), then run:
+Install Go 1.27.3 with mise, then install the pinned tools and run the full local checks:
 
 ```sh
+mise install
 make setup
 make check
+make security
 ```
 
-Run `make help` to see the available local commands. Use Conventional Commits, for example `feat: add device discovery` or `fix(storage): reject mounted targets`.
+See [local setup](docs/development/local-setup.md) for prerequisites and individual Make targets.
 
-## Shell script checks
+## Branches and commits
 
-Install ShellCheck 0.11.0 and run `make lint-shell`; `make setup` installs the pinned shfmt version. The legacy `create_image.sh`, multistrap init/menu scripts, and board boot installers are excluded because they manipulate image and boot components; they remain unchanged until a separate behavior-preserving audit can verify them.
+Use a branch prefix such as `feature/`, `fix/`, `hotfix/`, `refactor/`, `docs/`, `chore/`, `test/`, `ci/`, or `release/`, followed by a lowercase hyphen-separated description. The default branch is reserved for reviewed pull requests.
 
-A ShellCheck 0.11.0 audit found pre-existing findings in the excluded legacy files: 54 in `create_image.sh`, 126 in `sources/multistrap/multitool.sh`, 13 in its completion hook, and 39 across `init` and the four board boot installers. These findings are left intact pending behavior-preserving review.
+Use Conventional Commit subjects such as `feat(storage): add safe device discovery` or `fix: handle empty input`. Mark breaking changes with `!` or a `BREAKING CHANGE:` footer. Run `bash scripts/install-git-hooks.sh` to enable the optional local commit hook; CI checks pull request titles and commit messages.
 
-## ARMv7 build
+## Pull requests and checks
+
+Open a pull request for changes. CI runs policy and quality jobs; the separate security workflow scans dependencies, secrets, and GitHub Actions. Recovery image changes also run the isolated image build workflow. Keep documentation, tests, and release metadata aligned with behavior changes.
+
+## Shell and ARMv7 checks
+
+`make lint-shell` checks maintained scripts. The legacy `create_image.sh`, multistrap init/menu scripts, and board boot installers are excluded because they manipulate image and boot components; they remain unchanged pending a behavior-preserving audit. Existing findings are recorded in this repository's history and should not be expanded.
 
 `make build-armv7` creates `build/multitool-linux-armv7` with CGO disabled. The policy check inspects its ELF machine type without running it on physical hardware.
 
-## Branch names
+## Releases and recovery images
 
-Use `feature/`, `fix/`, `hotfix/`, `refactor/`, `docs/`, `chore/`, `test/`, `ci/`, or `release/` followed by a lowercase hyphen-separated description. The protected default branch and semantic release channels (`main`, `next`, `next-major`, `beta`, `alpha`, and `N.x`) are also valid.
-
-## Commit messages
-
-Use Conventional Commit subjects such as `feat(storage): add safe device discovery` or `fix: handle an empty input`. Mark breaking changes with `!` or a `BREAKING CHANGE:` footer. Run `bash scripts/install-git-hooks.sh` to enable the optional local commit hook; CI validates pull request titles with the same policy.
-
-## Releases
-
-Releases are selected from Conventional Commits: `fix` is a patch, `feat` is a minor, and breaking changes are major after `1.0.0`. Before `1.0.0`, breaking changes are minor. Documentation and maintenance commits do not release. See [the versioning policy](docs/releases/versioning.md).
+Software releases use Conventional Commits and are published after CI succeeds on `master`. Recovery images are built separately and remain experimental until hardware tests and approval are recorded. See the [release guide](docs/releases/README.md), [recovery status](docs/recovery/README.md), and [firmware release policy](docs/releases/release-policy.md).

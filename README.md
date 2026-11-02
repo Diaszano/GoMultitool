@@ -1,29 +1,34 @@
-# multitool
+# RK322x Multitool
 
-SD/eMMC card helper Multitool for TV boxes and alike
+This repository preserves the original Linux recovery environment for Rockchip TV boxes while adding a Go command-line application and automated repository tooling. The Go application currently provides `multitool version`; the existing Bash recovery menu remains the device recovery interface.
 
-## Building
+## Getting started
 
-This assumes a Debian-derived system, adapt to your system as appropriate. First, install required packages:
-
-```sh
-sudo apt install multistrap squashfs-tools parted dosfstools ntfs-3g qemu-user-static debian-keyring debian-archive-keyring
-```
-
-Fetch the source code:
+Install Go 1.27.3 with [mise](https://mise.jdx.dev/), then install the pinned development tools and run the local checks:
 
 ```sh
-git clone https://github.com/paolosabatino/multitool
+mise install
+make setup
+make check
 ```
 
-Then build an image for the appropriate board (root is required, as the script must have enough permissions to set up and manipulate loop devices for the target image):
+See [local setup](docs/development/local-setup.md) for prerequisites and individual build commands.
 
-```sh
-sudo ./create_image.sh $board
-```
+## Repository guide
 
-See `sources/*.conf` for supported board configurations; the resulting image can be found at `dist-$board/multitool.img`.
+- [Architecture overview](docs/architecture/overview.md)
+- [Contributing](CONTRIBUTING.md)
+- [Recovery and hardware status](docs/recovery/README.md)
+- [Build and release process](docs/releases/README.md)
+- [Security policy](SECURITY.md)
+- [Supported board configurations](docs/architecture/component-inventory.md)
 
-## Preserving the original recovery system
+## Builds
 
-The original Bash recovery menu, board assets, and image builder remain available while the Go application is developed. See [the upstream baseline](docs/architecture/upstream-baseline.md) and [component inventory](docs/architecture/component-inventory.md) before changing boot components.
+`make build` creates the host Go executable. `make build-armv7` cross-compiles it for Linux ARMv7. `make image` builds an experimental RK322x recovery image and requires Linux, root privileges, and the image tools used by CI. It writes a file-backed image; flashing a device is a separate operation and is not performed by this target.
+
+The image workflow checks partition structure, filesystems, boot files, and embedded binaries before uploading an experimental workflow artifact. The new image pipeline has not established physical hardware compatibility. See the [recovery policy](docs/releases/release-policy.md) before distributing firmware.
+
+## Upstream and license
+
+The legacy recovery project and assets are preserved from the baseline recorded in [upstream-baseline.md](docs/architecture/upstream-baseline.md). The repository license is GPL-2.0; bundled firmware and binary components may have additional terms. Review [NOTICE](NOTICE) before redistributing those assets.
