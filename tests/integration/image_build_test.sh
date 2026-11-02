@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+trap 'status=$?; echo "image integration test failed at line $LINENO: $BASH_COMMAND" >&2; exit "$status"' ERR
 
 root=$(cd "$(dirname "$0")/../.." && pwd)
 work=$(mktemp -d)
