@@ -89,8 +89,13 @@ done
 dd if=/dev/zero of="${loop_device}p3" bs=1M count=1 conv=notrunc status=none
 losetup -d "$loop_device"
 loop_device=
-if bash "$root/scripts/validate-image.sh" "$image" > /dev/null 2>&1; then
+if bash "$root/scripts/validate-image.sh" "$image" > "$work/invalid-validation.log" 2>&1; then
   echo 'validator accepted an image with a damaged root filesystem' >&2
   exit 1
 fi
-[[ -z $(losetup --associated "$image" --noheadings --output NAME) ]]
+associated=$(losetup --associated "$image" --noheadings --output NAME)
+[[ -z "$associated" ]] || {
+  cat "$work/invalid-validation.log" >&2
+  echo "validator left loop device attached: $associated" >&2
+  exit 1
+}
