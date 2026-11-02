@@ -30,8 +30,7 @@ jobs:
           sudo apt-get install -y dosfstools fdisk binutils multistrap ntfs-3g parted \
             qemu-user-static squashfs-tools util-linux xz-utils
       - name: Validate image fixtures
-        run: sudo --preserve-env=PATH bash \
-          tests/integration/image_build_test.sh
+        run: sudo --preserve-env=PATH bash tests/integration/image_build_test.sh
       - name: Test hardware release gate
         run: bash tests/policy/release_manifest_test.sh
       - name: Build and validate recovery image
