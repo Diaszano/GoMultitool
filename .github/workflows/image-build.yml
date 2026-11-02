@@ -1,0 +1,44 @@
+name: Recovery image
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install image tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dosfstools fdisk binutils multistrap ntfs-3g parted \
+            qemu-user-static squashfs-tools util-linux xz-utils
+      - name: Validate image fixtures
+        run: sudo --preserve-env=PATH bash \
+          tests/integration/image_build_test.sh
+      - name: Build and validate recovery image
+        run: sudo --preserve-env=PATH make image
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: recovery-image-${{ github.sha }}
+          path: |
+            image-dist/*.img.xz
+            image-dist/*.sha256
+            image-dist/*.manifest.json
+          if-no-files-found: error
