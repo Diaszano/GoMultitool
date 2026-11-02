@@ -18,6 +18,7 @@ setup: ## Install pinned Go tools locally
 	GOBIN=$(shell go env GOPATH)/bin go install github.com/zricethezav/gitleaks/v8@$$(sed -n 's/^gitleaks=//p' .tools-versions)
 	bash scripts/install-goreleaser.sh
 	bash scripts/install-zizmor.sh
+	bash scripts/install-semantic-release.sh
 
 fmt: ## Format Go sources
 	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-go-format.sh --write $$(find cmd internal tests -name '*.go' -type f)
