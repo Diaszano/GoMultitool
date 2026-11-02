@@ -1,0 +1,11 @@
+[
+  {
+    "version": 1,
+    "name": "rk3229-reference",
+    "compatible": ["rockchip,rk3229", "rockchip,rk3228a-box"],
+    "storage_kinds": ["emmc", "sd", "usb"],
+    "bootloader_sha256": "f09cbe018107a32ff27b560a555d555d271e2c299ddada99030890fc2a6d9630",
+    "kernel_sha256": "d93588d737ed3a891725ad89cfb563346bbc961cd8a776a9f371bc7026d6831d",
+    "allow_bootloader_modification": false
+  }
+]
