@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/Diaszano/GoMultitool/internal/application"
+	"github.com/Diaszano/GoMultitool/internal/application/diagnostics"
 	"github.com/Diaszano/GoMultitool/internal/application/discovery"
 	"github.com/Diaszano/GoMultitool/internal/buildinfo"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
@@ -61,6 +62,30 @@ func run(args []string, catalog application.DeviceCatalog, stdout, stderr io.Wri
 		}
 		return 0
 	}
-	_, _ = fmt.Fprintln(stderr, "Usage: multitool version | multitool hardware --json | multitool tui | multitool --console")
+	if len(args) == 2 && args[0] == "diagnose" && args[1] == "--json" {
+		cmdline, err := os.ReadFile("/proc/cmdline")
+		if err != nil {
+			_ = json.NewEncoder(stderr).Encode(map[string]string{"error": err.Error()})
+			return 1
+		}
+		boot := diagnostics.CollectBootReport("/", string(cmdline))
+		network := diagnostics.CollectNetworkReport()
+		_, available, err := linuxsys.ReadJournal("/var/log/syslog", 64*1024)
+		if err != nil {
+			_ = json.NewEncoder(stderr).Encode(map[string]string{"error": err.Error()})
+			return 1
+		}
+		report := struct {
+			Boot             diagnostics.BootReport    `json:"boot"`
+			Network          diagnostics.NetworkReport `json:"network"`
+			JournalAvailable bool                      `json:"journal_available"`
+		}{boot, network, available}
+		if err := json.NewEncoder(stdout).Encode(report); err != nil {
+			_, _ = fmt.Fprintf(stderr, "encode diagnostics: %v\n", err)
+			return 1
+		}
+		return 0
+	}
+	_, _ = fmt.Fprintln(stderr, "Usage: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console")
 	return 2
 }
