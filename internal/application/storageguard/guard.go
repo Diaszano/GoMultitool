@@ -6,18 +6,15 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 )
 
 // ErrDeviceChanged indicates the selected device no longer matches the reviewed plan.
 var ErrDeviceChanged = errors.New("device identity changed")
 
-type catalog interface {
-	Resolve(context.Context, string) (device.Device, error)
-}
-
 // Guard creates safe write plans and checks them again immediately before use.
-type Guard struct{ Catalog catalog }
+type Guard struct{ Catalog application.DeviceCatalog }
 
 // Plan records the device identity approved for a write operation.
 type Plan struct{ Device device.Device }

@@ -10,6 +10,8 @@ import (
 
 type catalogFunc func(context.Context, string) (device.Device, error)
 
+func (f catalogFunc) List(context.Context) ([]device.Device, error) { return nil, nil }
+
 func (f catalogFunc) Resolve(ctx context.Context, path string) (device.Device, error) {
 	return f(ctx, path)
 }
