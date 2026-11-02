@@ -12,6 +12,8 @@ type BootReport struct {
 	KernelPresent         bool
 	Observations          []string
 	Missing               []string
+	Hypotheses            []string `json:"hypotheses,omitempty"`
+	JournalAvailable      bool     `json:"journal_available"`
 }
 
 // InspectBootAssets checks known kernel and extlinux filenames in a mounted tree.
