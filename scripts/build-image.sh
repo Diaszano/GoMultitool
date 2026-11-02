@@ -103,29 +103,4 @@ xz -T0 -6 --check=crc64 -c "$raw_image" > "$archive.tmp"
 mv "$archive.tmp" "$archive"
 (cd "$output_dir" && sha256sum "$(basename "$archive")") > "$checksum.tmp"
 mv "$checksum.tmp" "$checksum"
-python3 - "$manifest.tmp" "$target" "$version" "$commit" "$archive" "$root" << 'PY'
-import hashlib
-import json
-import pathlib
-import sys
-
-manifest_path, target, version, commit, archive, root = sys.argv[1:]
-root = pathlib.Path(root)
-def digest(path):
-    return hashlib.sha256((root / path).read_bytes()).hexdigest()
-manifest = {
-    "target": target,
-    "version": version,
-    "source_commit": commit,
-    "image": pathlib.Path(archive).name,
-    "image_sha256": hashlib.sha256(pathlib.Path(archive).read_bytes()).hexdigest(),
-    "kernel_image": "sources/rk322x/kernel.img",
-    "kernel_sha256": digest("sources/rk322x/kernel.img"),
-    "bootloader_sha256": {
-        name: digest(f"sources/rk322x/{name}")
-        for name in ("idbloader_ddr_1.11.img", "u-boot-dtb.bin", "legacy-rk-uboot.bin")
-    },
-}
-pathlib.Path(manifest_path).write_text(json.dumps(manifest, indent=2) + "\n")
-PY
-mv "$manifest.tmp" "$manifest"
+bash "$root/scripts/release-manifest.sh" --channel experimental "$archive" "$manifest" "$target" "$version" "$commit"

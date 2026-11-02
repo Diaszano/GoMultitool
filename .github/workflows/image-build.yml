@@ -32,11 +32,13 @@ jobs:
       - name: Validate image fixtures
         run: sudo --preserve-env=PATH bash \
           tests/integration/image_build_test.sh
+      - name: Test hardware release gate
+        run: bash tests/policy/release_manifest_test.sh
       - name: Build and validate recovery image
         run: sudo --preserve-env=PATH make image
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: recovery-image-${{ github.sha }}
+          name: recovery-image-experimental-${{ github.sha }}
           path: |
             image-dist/*.img.xz
             image-dist/*.sha256
