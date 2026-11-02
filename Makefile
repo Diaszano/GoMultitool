@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup fmt fmt-check lint test test-race build build-armv7 integration-test image security check clean
+.PHONY: help setup fmt fmt-check lint test test-race build build-armv7 integration-test image security check clean lint-shell
 
 help: ## Show available targets
 	@printf 'Available targets:\n'
@@ -9,6 +9,7 @@ help: ## Show available targets
 setup: ## Install pinned Go tools locally
 	GOBIN=$(shell go env GOPATH)/bin go install golang.org/x/tools/cmd/goimports@$$(sed -n 's/^goimports=//p' .tools-versions)
 	GOBIN=$(shell go env GOPATH)/bin go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$$(sed -n 's/^golangci-lint=//p' .tools-versions)
+	GOBIN=$(shell go env GOPATH)/bin go install mvdan.cc/sh/v3/cmd/shfmt@$$(sed -n 's/^shfmt=//p' .tools-versions)
 
 fmt: ## Format Go sources
 	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-go-format.sh --write $$(find cmd internal tests -name '*.go' -type f)
@@ -18,6 +19,9 @@ fmt-check: ## Check Go formatting
 
 lint: ## Run Go static analysis
 	PATH=$(shell go env GOPATH)/bin:$$PATH golangci-lint run --config .golangci.yml ./...
+
+lint-shell: ## Check maintained shell scripts
+	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-shell.sh --check $$(find scripts tests/policy -maxdepth 1 -type f -name '*.sh' | sort)
 
 test: ## Run Go tests
 	go test ./...
