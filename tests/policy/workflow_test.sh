@@ -8,7 +8,7 @@ workflow="$root/.github/workflows/ci.yml"
   exit 1
 }
 grep -q '^  pull_request:' "$workflow"
-grep -q '^  push:' "$workflow"
+grep -q '^  workflow_call:' "$workflow"
 grep -q '^  policy:' "$workflow"
 grep -q '^  quality:' "$workflow"
 grep -Eq 'uses: actions/checkout@[0-9a-f]{40}' "$workflow"
