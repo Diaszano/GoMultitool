@@ -1,0 +1,8 @@
+/create_image.sh @Diaszano
+/sources/ @Diaszano
+/tools/ @Diaszano
+/internal/infrastructure/ @Diaszano
+/scripts/build-image.sh @Diaszano
+/scripts/release-manifest.sh @Diaszano
+/.github/workflows/release.yml @Diaszano
+/docs/releases/ @Diaszano
