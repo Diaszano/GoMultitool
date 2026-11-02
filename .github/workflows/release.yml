@@ -17,6 +17,7 @@ jobs:
     uses: ./.github/workflows/ci.yml  # zizmor: ignore[self-repository] actionlint lacks $/ support.
 
   release:
+    # Firmware remains experimental until the separate hardware gate passes.
     if: github.event_name == 'push'
     needs: [ci]
     runs-on: ubuntu-latest
