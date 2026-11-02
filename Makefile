@@ -53,6 +53,7 @@ build-armv7: ## Build the Linux ARMv7 executable
 
 integration-test: ## Run integration tests
 	go test ./...
+	bash tests/policy/build_image_safety_test.sh
 	bash tests/integration/rootfs_test.sh
 	bash tests/integration/image_build_test.sh
 

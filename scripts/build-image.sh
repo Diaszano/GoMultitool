@@ -42,7 +42,12 @@ for path in "$output_dir" "$raw_dir" "$root/sources/multistrap/overlays" "$root/
   }
 done
 mkdir -p "$output_dir" "$raw_dir" "$(dirname "$overlay_binary")"
-rm -f "$archive" "$checksum" "$manifest" "$archive.tmp" "$checksum.tmp" "$manifest.tmp"
+for path in "$archive" "$checksum" "$manifest" "$archive.tmp" "$checksum.tmp" "$manifest.tmp" "$raw_image"; do
+  [[ ! -e "$path" && ! -L "$path" ]] || {
+    echo "refusing to overwrite existing build output: $path" >&2
+    exit 1
+  }
+done
 temp_dir=$(mktemp -d)
 loop_device=
 cleanup() {
@@ -64,10 +69,9 @@ cleanup() {
   rm -f "$overlay_binary"
   rmdir "$(dirname "$overlay_binary")" 2> /dev/null || true
   if [[ $status -ne 0 ]]; then
-    rm -f "$archive" "$checksum" "$manifest" "$archive.tmp" "$checksum.tmp" "$manifest.tmp" "$raw_image"
-  else
-    rm -f "$raw_image"
+    rm -f "$archive.tmp" "$checksum.tmp" "$manifest.tmp" "$raw_image"
   fi
+  rm -f "$raw_image"
   exit "$status"
 }
 trap cleanup EXIT
@@ -75,7 +79,6 @@ trap cleanup EXIT
 bash "$root/scripts/build-armv7.sh" "$temp_dir/multitool"
 readelf -h "$temp_dir/multitool" | grep -q 'Machine:.*ARM'
 bash "$root/build/rootfs/install-multitool.sh" "$root/sources/multistrap/overlays" "$temp_dir/multitool"
-rm -f "$root/dist-$target/root.img" "$raw_image"
 (cd "$root" && bash create_image.sh "$target")
 
 loop_device=$(losetup --find --show --partscan "$raw_image")
