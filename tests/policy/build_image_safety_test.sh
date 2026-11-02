@@ -9,3 +9,5 @@ if grep -Fq "rm -f \"${dollar}archive\" \"${dollar}checksum\" \"${dollar}manifes
   exit 1
 fi
 grep -q 'refusing to overwrite existing build output' "$script"
+grep -q 'ROOTFS_IMAGE=' "$script"
+grep -q 'ROOTFS_IMAGE=' "$root/create_image.sh"
