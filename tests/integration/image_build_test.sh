@@ -97,7 +97,12 @@ if bash "$root/scripts/validate-image.sh" "$image" > "$work/invalid-validation.l
   echo 'validator accepted an image with a damaged root filesystem' >&2
   exit 1
 fi
-associated=$(losetup --associated "$image" --noheadings --output NAME)
+associated=
+for _ in {1..30}; do
+  associated=$(losetup --associated "$image" --noheadings --output NAME)
+  [[ -z "$associated" ]] && break
+  sleep 0.1
+done
 [[ -z "$associated" ]] || {
   cat "$work/invalid-validation.log" >&2
   echo "validator left loop device attached: $associated" >&2
