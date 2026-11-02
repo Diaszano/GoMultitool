@@ -1,3 +1,4 @@
+// Package main provides the multitool command-line interface.
 package main
 
 import (

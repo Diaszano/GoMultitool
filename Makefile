@@ -6,17 +6,18 @@ help: ## Show available targets
 	@printf 'Available targets:\n'
 	@awk 'BEGIN { FS = ":.*## " } /^[a-zA-Z0-9_-]+:.*## / { printf "  %-18s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-setup: ## Install pinned tools with mise
-	mise install
+setup: ## Install pinned Go tools locally
+	GOBIN=$(shell go env GOPATH)/bin go install golang.org/x/tools/cmd/goimports@$$(sed -n 's/^goimports=//p' .tools-versions)
+	GOBIN=$(shell go env GOPATH)/bin go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$$(sed -n 's/^golangci-lint=//p' .tools-versions)
 
 fmt: ## Format Go sources
-	gofmt -w $$(find cmd internal -name '*.go' -type f)
+	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-go-format.sh --write $$(find cmd internal tests -name '*.go' -type f)
 
 fmt-check: ## Check Go formatting
-	@test -z "$$(gofmt -l $$(find cmd internal -name '*.go' -type f))"
+	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-go-format.sh --check $$(find cmd internal tests -name '*.go' -type f)
 
-lint: ## Run Go vet
-	go vet ./...
+lint: ## Run Go static analysis
+	PATH=$(shell go env GOPATH)/bin:$$PATH golangci-lint run --config .golangci.yml ./...
 
 test: ## Run Go tests
 	go test ./...
