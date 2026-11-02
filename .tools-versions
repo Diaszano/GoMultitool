@@ -8,3 +8,4 @@ actionlint=v1.7.12
 govulncheck=v1.9.0
 gitleaks=v8.30.1
 zizmor=v1.31.1
+goreleaser=v2.19.0

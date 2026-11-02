@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup fmt fmt-check lint test test-race build build-armv7 integration-test image security check clean lint-shell lint-docs
+.PHONY: help setup fmt fmt-check lint test test-race build build-armv7 integration-test image security check clean lint-shell lint-docs release-snapshot
 
 help: ## Show available targets
 	@printf 'Available targets:\n'
@@ -16,6 +16,7 @@ setup: ## Install pinned Go tools locally
 	bash scripts/install-shellcheck.sh
 	GOBIN=$(shell go env GOPATH)/bin go install golang.org/x/vuln/cmd/govulncheck@$$(sed -n 's/^govulncheck=//p' .tools-versions)
 	GOBIN=$(shell go env GOPATH)/bin go install github.com/zricethezav/gitleaks/v8@$$(sed -n 's/^gitleaks=//p' .tools-versions)
+	bash scripts/install-goreleaser.sh
 	bash scripts/install-zizmor.sh
 
 fmt: ## Format Go sources
@@ -31,7 +32,7 @@ lint-shell: ## Check maintained shell scripts
 	PATH=$(shell go env GOPATH)/bin:$$PATH bash scripts/check-shell.sh --check $$(find scripts tests/policy tools/policy -maxdepth 1 -type f -name '*.sh' | sort)
 
 lint-docs: ## Lint Markdown, YAML, and whitespace
-	PATH=$(shell go env GOPATH)/bin:$$PATH PYTHONPATH=$(shell go env GOPATH)/python-tools bash scripts/check-docs.sh --check $$(find README.md CONTRIBUTING.md docs -type f -name '*.md' ! -path 'docs/superpowers/plans/*' | sort) $$(find . -type f \( -name '*.yaml' -o -name '*.yml' \) ! -path './.git/*' ! -path './.tools/*' | sort)
+	PATH=$(shell go env GOPATH)/bin:$$PATH PYTHONPATH=$(shell go env GOPATH)/python-tools bash scripts/check-docs.sh --check $$(find README.md CONTRIBUTING.md docs -type f -name '*.md' ! -path 'docs/superpowers/plans/*' | sort) $$(find . -type f \( -name '*.yaml' -o -name '*.yml' \) ! -path './.git/*' ! -path './.tools/*' ! -path './dist/*' ! -path './build/*' | sort)
 	git diff --check
 
 GO_TEST_PACKAGES ?= ./...
@@ -61,6 +62,10 @@ security: ## Run vulnerability and secret checks
 	PATH=$(shell go env GOPATH)/bin:$$PATH gitleaks dir . --redact --no-banner
 	PATH=$(shell go env GOPATH)/bin:$$PATH actionlint .github/workflows/*.yml
 	PATH=$(shell go env GOPATH)/bin:$$PATH zizmor --offline .github/workflows
+
+release-snapshot: ## Build local release archives without publishing
+	PATH=$(shell go env GOPATH)/bin:$$PATH goreleaser check
+	PATH=$(shell go env GOPATH)/bin:$$PATH goreleaser release --snapshot --clean
 
 check: fmt-check lint lint-shell lint-docs test test-race integration-test build-armv7 ## Run all local quality checks
 
