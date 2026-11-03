@@ -14,3 +14,12 @@ linters:
     nolintlint:
       require-explanation: true
       require-specific: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/Diaszano/GoMultitool
