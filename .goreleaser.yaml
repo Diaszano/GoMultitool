@@ -1,0 +1,37 @@
+version: 2
+project_name: multitool
+
+dist: dist
+
+builds:
+  - id: multitool
+    main: ./cmd/multitool
+    binary: multitool
+    env:
+      - CGO_ENABLED=0
+    goos: [linux]
+    goarch: [amd64, arm]
+    goarm: [7]
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    ldflags:
+      - -s -w
+      - -X github.com/Diaszano/GoMultitool/internal/buildinfo.Version={{ .Version }}
+      - -X github.com/Diaszano/GoMultitool/internal/buildinfo.Commit={{ .Commit }}
+      - -X github.com/Diaszano/GoMultitool/internal/buildinfo.BuildTime={{ .Date }}
+
+archives:
+  - formats: [tar.gz]
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}'
+
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  version_template: '{{ incpatch .Version }}-next'
+
+changelog:
+  disable: true
+
+release:
+  replace_existing_artifacts: true

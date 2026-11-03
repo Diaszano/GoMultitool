@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Validate branch name
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: bash tools/policy/branch.sh "$BRANCH_NAME"
+      - name: Validate pull request title
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | bash tools/policy/commit.sh --stdin
+      - name: Validate commit messages
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            commits=("$(git rev-parse HEAD)")
+          else
+            mapfile -t commits < <(git rev-list "$BASE_SHA..HEAD")
+          fi
+          for commit in "${commits[@]}"; do
+            git show -s --format=%B "$commit" > "$RUNNER_TEMP/commit-message"
+            bash tools/policy/commit.sh --file "$RUNNER_TEMP/commit-message"
+          done
+
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+      - name: Install pinned tooling
+        run: make setup
+      - name: Validate workflow syntax
+        run: actionlint .github/workflows/*.yml
+      - name: Run quality checks and build artifacts
+        run: make check
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: multitool-linux-armv7
+          path: build/multitool-linux-armv7
+          if-no-files-found: error

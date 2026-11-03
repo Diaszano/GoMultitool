@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -u
+value="ok"
+if true;then echo "$value";fi

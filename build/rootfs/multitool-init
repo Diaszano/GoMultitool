@@ -1,0 +1,6 @@
+#!/bin/sh
+# The Go runtime remains opt-in until equivalent recovery operations are validated.
+if [ "${MULTITOOL_GO_RUNTIME:-0}" = 1 ] && [ -x /usr/local/bin/multitool ]; then
+	exec /usr/local/bin/multitool --console
+fi
+exec /usr/local/bin/multitool.sh "$@"
