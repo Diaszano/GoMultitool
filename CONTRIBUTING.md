@@ -31,4 +31,4 @@ Open a pull request for changes. CI runs policy and quality jobs; the separate s
 
 ## Releases and recovery images
 
-Software releases use Conventional Commits and are published after CI succeeds on `master`. Recovery images are built separately and remain experimental until hardware tests and approval are recorded. See the [release guide](docs/releases/README.md), [recovery status](docs/recovery/README.md), and [firmware release policy](docs/releases/release-policy.md).
+Software releases use Conventional Commits and are published after CI succeeds on `main`. Recovery images are built separately and remain experimental until hardware tests and approval are recorded. See the [release guide](docs/releases/README.md), [recovery status](docs/recovery/README.md), and [firmware release policy](docs/releases/release-policy.md).
