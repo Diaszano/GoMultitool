@@ -8,8 +8,6 @@ import (
 	"io"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
-
 	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/diagnostics"
 	"github.com/Diaszano/GoMultitool/internal/application/discovery"
@@ -17,17 +15,20 @@ import (
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	linuxsys "github.com/Diaszano/GoMultitool/internal/infrastructure/linux"
 	"github.com/Diaszano/GoMultitool/internal/presentation/console"
+	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 	"github.com/Diaszano/GoMultitool/internal/presentation/tui"
 )
 
 func main() {
-	catalog := linuxsys.SysfsCatalog{SysRoot: "/sys", ProcRoot: "/proc"}
+	devices := linuxsys.SysfsCatalog{SysRoot: "/sys", ProcRoot: "/proc"}
+	messages := i18n.For(i18n.DetectLocale(os.Getenv))
 	if len(os.Args) == 2 && os.Args[1] == "tui" {
-		service := discovery.Service{Catalog: catalog}
-		model := tui.NewModel(
+		service := discovery.Service{Catalog: devices}
+		app := tui.New(
 			func() ([]device.Device, error) { return service.Inventory(context.Background()) },
+			messages,
 		)
-		_, err := tea.NewProgram(model).Run()
+		err := app.Run()
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -35,24 +36,32 @@ func main() {
 		return
 	}
 	if len(os.Args) == 2 && os.Args[1] == "--console" {
-		service := discovery.Service{Catalog: catalog}
-		if err := console.Run(os.Stdin, os.Stdout, service.Inventory); err != nil {
+		service := discovery.Service{Catalog: devices}
+		if err := console.Run(os.Stdin, os.Stdout, service.Inventory, messages); err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		return
 	}
-	os.Exit(run(os.Args[1:], catalog, os.Stdout, os.Stderr))
+	os.Exit(run(os.Args[1:], devices, messages, os.Stdout, os.Stderr))
 }
 
-func run(args []string, catalog application.DeviceCatalog, stdout, stderr io.Writer) int {
+func run(
+	args []string,
+	devices application.DeviceCatalog,
+	messages i18n.Catalog,
+	stdout, stderr io.Writer,
+) int {
 	if len(args) == 1 && args[0] == "version" {
 		info := buildinfo.Current()
 		if _, err := fmt.Fprintf(
 			stdout,
-			"RK322x Multitool %s\nCommit: %s\nBuild: %s\n",
+			"%s %s\n%s: %s\n%s: %s\n",
+			messages.VersionLabel,
 			info.Version,
+			messages.CommitLabel,
 			info.Commit,
+			messages.BuildLabel,
 			info.BuildTime,
 		); err != nil {
 			return 1
@@ -60,13 +69,13 @@ func run(args []string, catalog application.DeviceCatalog, stdout, stderr io.Wri
 		return 0
 	}
 	if len(args) == 2 && args[0] == "hardware" && args[1] == "--json" {
-		devices, err := (discovery.Service{Catalog: catalog}).Inventory(context.Background())
+		inventory, err := (discovery.Service{Catalog: devices}).Inventory(context.Background())
 		if err != nil {
 			_ = json.NewEncoder(stderr).Encode(map[string]string{"error": err.Error()})
 			return 1
 		}
-		if err := json.NewEncoder(stdout).Encode(devices); err != nil {
-			_, _ = fmt.Fprintf(stderr, "encode hardware inventory: %v\n", err)
+		if err := json.NewEncoder(stdout).Encode(inventory); err != nil {
+			_, _ = fmt.Fprintf(stderr, "%s: %v\n", messages.EncodeHardware, err)
 			return 1
 		}
 		return 0
@@ -90,14 +99,11 @@ func run(args []string, catalog application.DeviceCatalog, stdout, stderr io.Wri
 			JournalAvailable bool                      `json:"journal_available"`
 		}{boot, network, available}
 		if err := json.NewEncoder(stdout).Encode(report); err != nil {
-			_, _ = fmt.Fprintf(stderr, "encode diagnostics: %v\n", err)
+			_, _ = fmt.Fprintf(stderr, "%s: %v\n", messages.EncodeDiagnostics, err)
 			return 1
 		}
 		return 0
 	}
-	_, _ = fmt.Fprintln(
-		stderr,
-		"Usage: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
-	)
+	_, _ = fmt.Fprintln(stderr, messages.Usage)
 	return 2
 }

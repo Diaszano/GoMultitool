@@ -1,32 +1,18 @@
-// Package screens renders individual terminal-interface screens.
+// Package screens builds terminal-interface widgets.
 package screens
 
 import (
-	"strings"
-
-	"github.com/charmbracelet/lipgloss"
+	"github.com/rivo/tview"
 
 	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 )
 
-// Home renders the main menu with its selected item highlighted.
-func Home(selected int) string {
-	var rows []string
-	for i, label := range i18n.MainMenu {
-		if i == selected {
-			rows = append(
-				rows,
-				lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("10")).Render("› "+label),
-			)
-		} else {
-			rows = append(rows, "  "+label)
-		}
+// Home builds the localized menu and passes selected item indexes to onSelect.
+func Home(catalog i18n.Catalog, onSelect func(int)) *tview.List {
+	list := tview.NewList().ShowSecondaryText(true)
+	for _, item := range catalog.Menu {
+		list.AddItem(item.Label, item.Hint, 0, nil)
 	}
-	return lipgloss.NewStyle().
-		Bold(true).
-		Render(i18n.Title) +
-		"\n\n" + strings.Join(
-		rows,
-		"\n",
-	) + "\n\n" + i18n.Navigation
+	list.SetSelectedFunc(func(index int, _, _ string, _ rune) { onSelect(index) })
+	return list
 }
