@@ -11,7 +11,7 @@ target=${1:-rk322x}
   echo 'image construction requires root on Linux; it only attaches the generated image file' >&2
   exit 1
 }
-for tool in go git multistrap mksquashfs fallocate losetup parted mkfs.vfat mkfs.ntfs mount umount mountpoint findmnt blkid sfdisk readelf xz sha256sum python3; do
+for tool in go git multistrap mksquashfs truncate losetup parted mkfs.vfat mkfs.ntfs mount umount mountpoint findmnt blkid sfdisk readelf xz sha256sum python3; do
   command -v "$tool" > /dev/null || {
     echo "missing required image build tool: $tool" >&2
     exit 1
