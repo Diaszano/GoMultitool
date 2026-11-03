@@ -34,7 +34,8 @@
 ### Task 1: Add the two-language catalog and locale detection
 
 **Files:**
-- Modify: `internal/presentation/i18n/pt_br.go` (replace mutable globals with catalog and locale detection)
+- Delete: `internal/presentation/i18n/pt_br.go` (remove mutable Portuguese-only globals)
+- Create: `internal/presentation/i18n/catalog.go` (catalog and locale detection)
 - Create: `internal/presentation/i18n/i18n_test.go`
 
 **Interfaces:**

@@ -74,11 +74,7 @@ func run(
 			_ = json.NewEncoder(stderr).Encode(map[string]string{"error": err.Error()})
 			return 1
 		}
-		if err := json.NewEncoder(stdout).Encode(inventory); err != nil {
-			_, _ = fmt.Fprintf(stderr, "%s: %v\n", messages.EncodeHardware, err)
-			return 1
-		}
-		return 0
+		return encodeJSON(stdout, stderr, "encode hardware inventory", inventory)
 	}
 	if len(args) == 2 && args[0] == "diagnose" && args[1] == "--json" {
 		cmdline, err := os.ReadFile("/proc/cmdline")
@@ -98,12 +94,16 @@ func run(
 			Network          diagnostics.NetworkReport `json:"network"`
 			JournalAvailable bool                      `json:"journal_available"`
 		}{boot, network, available}
-		if err := json.NewEncoder(stdout).Encode(report); err != nil {
-			_, _ = fmt.Fprintf(stderr, "%s: %v\n", messages.EncodeDiagnostics, err)
-			return 1
-		}
-		return 0
+		return encodeJSON(stdout, stderr, "encode diagnostics", report)
 	}
 	_, _ = fmt.Fprintln(stderr, messages.Usage)
 	return 2
+}
+
+func encodeJSON(stdout, stderr io.Writer, context string, value any) int {
+	if err := json.NewEncoder(stdout).Encode(value); err != nil {
+		_, _ = fmt.Fprintf(stderr, "%s: %v\n", context, err)
+		return 1
+	}
+	return 0
 }

@@ -33,7 +33,7 @@ func TestDetectLocaleUsesFirstSupportedEnvironmentValue(t *testing.T) {
 		},
 		{
 			name: "locale codes are case insensitive",
-			env:  map[string]string{"LC_ALL": "PT_br.UTF-8"},
+			env:  map[string]string{"LC_ALL": "PT_br.UTF-8", "LANG": "en_US.UTF-8"},
 			want: LocalePtBR,
 		},
 		{

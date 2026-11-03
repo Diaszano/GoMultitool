@@ -16,6 +16,10 @@ type testCatalog struct {
 	err     error
 }
 
+type failedWriter struct{}
+
+func (failedWriter) Write([]byte) (int, error) { return 0, errors.New("broken pipe") }
+
 func (c testCatalog) List(context.Context) ([]device.Device, error) { return c.devices, c.err }
 func (c testCatalog) Resolve(context.Context, string) (device.Device, error) {
 	return device.Device{}, nil
@@ -130,5 +134,41 @@ func TestJSONErrorDoesNotDependOnLocale(t *testing.T) {
 	}
 	if string(outputs[0]) != string(outputs[1]) {
 		t.Fatalf("JSON error varies by locale: %q != %q", outputs[0], outputs[1])
+	}
+}
+
+func TestJSONEncodeWriteErrorKeepsStableContext(t *testing.T) {
+	for _, locale := range []i18n.Locale{i18n.LocalePtBR, i18n.LocaleEN} {
+		var stderr bytes.Buffer
+		code := run(
+			[]string{"hardware", "--json"},
+			testCatalog{devices: []device.Device{{ID: "mmc0"}}},
+			i18n.For(locale),
+			failedWriter{},
+			&stderr,
+		)
+		if code != 1 || stderr.String() != "encode hardware inventory: broken pipe\n" {
+			t.Errorf("locale %q exit/stderr = %d/%q", locale, code, stderr.String())
+		}
+	}
+}
+
+func TestJSONEncodeErrorContextsRemainStable(t *testing.T) {
+	for _, test := range []struct {
+		context string
+		want    string
+	}{
+		{"encode hardware inventory", "encode hardware inventory: broken pipe\n"},
+		{"encode diagnostics", "encode diagnostics: broken pipe\n"},
+	} {
+		var stderr bytes.Buffer
+		if code := encodeJSON(
+			failedWriter{},
+			&stderr,
+			test.context,
+			map[string]string{"ok": "yes"},
+		); code != 1 || stderr.String() != test.want {
+			t.Errorf("context %q exit/stderr = %d/%q", test.context, code, stderr.String())
+		}
 	}
 }

@@ -64,8 +64,6 @@ type Catalog struct {
 	CommitLabel           string
 	BuildLabel            string
 	Usage                 string
-	EncodeHardware        string
-	EncodeDiagnostics     string
 }
 
 // DetectLocale selects the first supported locale from the standard environment order.
@@ -116,8 +114,6 @@ func For(locale Locale) Catalog {
 			CommitLabel:           "Commit",
 			BuildLabel:            "Build",
 			Usage:                 "Usage: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
-			EncodeHardware:        "encode hardware inventory",
-			EncodeDiagnostics:     "encode diagnostics",
 		}
 	}
 	return Catalog{
@@ -152,7 +148,5 @@ func For(locale Locale) Catalog {
 		CommitLabel:           "Commit",
 		BuildLabel:            "Compilação",
 		Usage:                 "Uso: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
-		EncodeHardware:        "codificar inventário de hardware",
-		EncodeDiagnostics:     "codificar diagnósticos",
 	}
 }

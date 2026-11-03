@@ -27,8 +27,8 @@ func newApp(
 	var showingHardware bool
 	var hardwareView *tview.TextView
 
-	list := screens.Home(catalog, func(index int) {
-		switch catalog.Menu[index].ID {
+	list := screens.Home(catalog, func(id i18n.MenuItemID) {
+		switch id {
 		case i18n.MenuHardware:
 			var devices []device.Device
 			var err error
