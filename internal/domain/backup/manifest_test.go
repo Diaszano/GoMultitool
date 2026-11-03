@@ -7,7 +7,15 @@ import (
 )
 
 func TestManifestJSONRoundTrip(t *testing.T) {
-	m := Manifest{Version: 1, SourceID: "mmc0", SourcePath: "/dev/mmc0", SizeBytes: 1024, LogicalSectorSize: 512, SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Status: StatusComplete}
+	m := Manifest{
+		Version:           1,
+		SourceID:          "mmc0",
+		SourcePath:        "/dev/mmc0",
+		SizeBytes:         1024,
+		LogicalSectorSize: 512,
+		SHA256:            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Status:            StatusComplete,
+	}
 	data, err := json.Marshal(m)
 	if err != nil {
 		t.Fatal(err)
@@ -22,7 +30,15 @@ func TestManifestJSONRoundTrip(t *testing.T) {
 }
 
 func TestManifestRejectsIncompleteAndInvalidChecksums(t *testing.T) {
-	base := Manifest{Version: 1, SourceID: "mmc0", SourcePath: "/dev/mmc0", SizeBytes: 1024, LogicalSectorSize: 512, SHA256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", Status: StatusComplete}
+	base := Manifest{
+		Version:           1,
+		SourceID:          "mmc0",
+		SourcePath:        "/dev/mmc0",
+		SizeBytes:         1024,
+		LogicalSectorSize: 512,
+		SHA256:            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		Status:            StatusComplete,
+	}
 	for _, tc := range []struct {
 		name string
 		edit func(*Manifest)

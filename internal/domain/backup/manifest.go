@@ -24,7 +24,13 @@ type Manifest struct {
 // Validate permits restoration only for complete, well-formed backups.
 func (m Manifest) Validate() error {
 	digest, err := hex.DecodeString(m.SHA256)
-	if m.Version != 1 || m.SourceID == "" || m.SourcePath == "" || m.SizeBytes <= 0 || (m.LogicalSectorSize != 512 && m.LogicalSectorSize != 4096) || m.SizeBytes%m.LogicalSectorSize != 0 || err != nil || len(digest) != 32 || strings.ToLower(m.SHA256) != m.SHA256 || m.Status != StatusComplete {
+	if m.Version != 1 || m.SourceID == "" || m.SourcePath == "" || m.SizeBytes <= 0 ||
+		(m.LogicalSectorSize != 512 && m.LogicalSectorSize != 4096) ||
+		m.SizeBytes%m.LogicalSectorSize != 0 ||
+		err != nil ||
+		len(digest) != 32 ||
+		strings.ToLower(m.SHA256) != m.SHA256 ||
+		m.Status != StatusComplete {
 		return ErrInvalidManifest
 	}
 	return nil

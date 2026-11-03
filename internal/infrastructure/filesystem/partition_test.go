@@ -21,6 +21,7 @@ func TestParseMBR(t *testing.T) {
 		t.Fatalf("partitions=%+v", parts)
 	}
 }
+
 func TestParseMBRRejectsMalformedTable(t *testing.T) {
 	disk := make([]byte, 512)
 	if _, err := ParseMBR(bytes.NewReader(disk), 512); err == nil {
@@ -35,6 +36,7 @@ func TestParseMBRRejectsMalformedTable(t *testing.T) {
 		t.Fatal("out-of-range partition accepted")
 	}
 }
+
 func TestHasExt4Signature(t *testing.T) {
 	data := make([]byte, 2048)
 	data[1080], data[1081] = 0x53, 0xef

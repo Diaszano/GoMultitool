@@ -31,7 +31,15 @@ type Target interface {
 type Service struct{}
 
 // Execute verifies the source, revalidates the target, writes, syncs, and reads back.
-func (Service) Execute(ctx context.Context, manifest backup.Manifest, source io.ReadSeeker, plan storageguard.Plan, confirmed bool, guard storageguard.Guard, openTarget func(string) (Target, error)) (retErr error) {
+func (Service) Execute(
+	ctx context.Context,
+	manifest backup.Manifest,
+	source io.ReadSeeker,
+	plan storageguard.Plan,
+	confirmed bool,
+	guard storageguard.Guard,
+	openTarget func(string) (Target, error),
+) (retErr error) {
 	if err := manifest.Validate(); err != nil {
 		return err
 	}

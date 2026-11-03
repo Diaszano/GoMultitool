@@ -27,9 +27,11 @@ func (c *Confirmation) Update(msg tea.Msg) {
 	if !ok {
 		return
 	}
-	if key.Type == tea.KeyEsc || key.Type == tea.KeyRunes && strings.EqualFold(string(key.Runes), "n") {
+	if key.Type == tea.KeyEsc ||
+		key.Type == tea.KeyRunes && strings.EqualFold(string(key.Runes), "n") {
 		c.Reject()
-	} else if key.Type == tea.KeyRunes && strings.EqualFold(string(key.Runes), "y") {
+	} else if key.Type == tea.KeyRunes &&
+		strings.EqualFold(string(key.Runes), "y") {
 		c.Accept()
 	}
 }
@@ -42,5 +44,15 @@ func (c *Confirmation) Reject() { c.Confirmed = false }
 
 // View renders the exact device path and identity requiring approval.
 func (c Confirmation) View() string {
-	return lipgloss.NewStyle().Bold(true).Render("Confirmar operação destrutiva?\n") + styles.Warning.Render(fmt.Sprintf("Dispositivo: %s (%s)\nCapacidade: %d bytes", c.Device.Path, c.Device.ID, c.Device.SizeBytes)) + "\n\nDigite Y para confirmar; qualquer outra resposta mantém a operação cancelada.\n" + i18n.Navigation
+	return lipgloss.NewStyle().
+		Bold(true).
+		Render("Confirmar operação destrutiva?\n") +
+		styles.Warning.Render(
+			fmt.Sprintf(
+				"Dispositivo: %s (%s)\nCapacidade: %d bytes",
+				c.Device.Path,
+				c.Device.ID,
+				c.Device.SizeBytes,
+			),
+		) + "\n\nDigite Y para confirmar; qualquer outra resposta mantém a operação cancelada.\n" + i18n.Navigation
 }

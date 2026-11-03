@@ -22,7 +22,12 @@ func (c testCatalog) Resolve(context.Context, string) (device.Device, error) {
 
 func TestHardwareJSON(t *testing.T) {
 	var out, stderr bytes.Buffer
-	catalog := testCatalog{devices: []device.Device{{ID: "sda", Kind: device.KindUSB}, {ID: "mmc0", Kind: device.KindEMMC}}}
+	catalog := testCatalog{
+		devices: []device.Device{
+			{ID: "sda", Kind: device.KindUSB},
+			{ID: "mmc0", Kind: device.KindEMMC},
+		},
+	}
 	if code := run([]string{"hardware", "--json"}, catalog, &out, &stderr); code != 0 {
 		t.Fatalf("exit = %d, stderr = %s", code, stderr.String())
 	}
@@ -37,7 +42,12 @@ func TestHardwareJSON(t *testing.T) {
 
 func TestHardwareJSONErrorIsStructured(t *testing.T) {
 	var out, stderr bytes.Buffer
-	if code := run([]string{"hardware", "--json"}, testCatalog{err: errors.New("sysfs unavailable")}, &out, &stderr); code == 0 {
+	if code := run(
+		[]string{"hardware", "--json"},
+		testCatalog{err: errors.New("sysfs unavailable")},
+		&out,
+		&stderr,
+	); code == 0 {
 		t.Fatal("expected failure")
 	}
 	var got map[string]string

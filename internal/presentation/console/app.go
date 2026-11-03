@@ -12,10 +12,17 @@ import (
 )
 
 // Run serves the numeric menu using only line-oriented input and output.
-func Run(input io.Reader, output io.Writer, inventory func(context.Context) ([]device.Device, error)) error {
+func Run(
+	input io.Reader,
+	output io.Writer,
+	inventory func(context.Context) ([]device.Device, error),
+) error {
 	in := bufio.NewScanner(input)
 	for {
-		if _, err := fmt.Fprintln(output, "RK322x Multitool\n1. Informações de hardware\n0. Sair"); err != nil {
+		if _, err := fmt.Fprintln(
+			output,
+			"RK322x Multitool\n1. Informações de hardware\n0. Sair",
+		); err != nil {
 			return err
 		}
 		if _, err := fmt.Fprint(output, "Escolha: "); err != nil {
@@ -45,7 +52,13 @@ func Run(input io.Reader, output io.Writer, inventory func(context.Context) ([]d
 				continue
 			}
 			for _, d := range devices {
-				if _, err := fmt.Fprintf(output, "%s (%s) — %d bytes\n", d.Path, d.Kind, d.SizeBytes); err != nil {
+				if _, err := fmt.Fprintf(
+					output,
+					"%s (%s) — %d bytes\n",
+					d.Path,
+					d.Kind,
+					d.SizeBytes,
+				); err != nil {
 					return err
 				}
 			}

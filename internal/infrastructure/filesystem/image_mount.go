@@ -51,7 +51,11 @@ func (m ImageMounter) Mount(ctx context.Context, imagePath string) (string, func
 	}
 	output, err := runner.Run(ctx, "losetup", "--find", "--show", "--partscan", imagePath)
 	if err != nil {
-		return "", nil, fmt.Errorf("attach image loop device: %w: %s", err, strings.TrimSpace(string(output)))
+		return "", nil, fmt.Errorf(
+			"attach image loop device: %w: %s",
+			err,
+			strings.TrimSpace(string(output)),
+		)
 	}
 	loop := strings.TrimSpace(string(output))
 	if !loopPath.MatchString(loop) {
@@ -85,7 +89,10 @@ func (m ImageMounter) Mount(ctx context.Context, imagePath string) (string, func
 	output, err = runner.Run(ctx, "mount", devicePath, mountpoint)
 	if err != nil {
 		cleanupErr := cleanup()
-		return "", nil, errors.Join(fmt.Errorf("mount image root: %w: %s", err, strings.TrimSpace(string(output))), cleanupErr)
+		return "", nil, errors.Join(
+			fmt.Errorf("mount image root: %w: %s", err, strings.TrimSpace(string(output))),
+			cleanupErr,
+		)
 	}
 	mounted = true
 	return mountpoint, cleanup, nil

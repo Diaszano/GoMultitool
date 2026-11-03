@@ -19,7 +19,11 @@ var ErrIdentityMismatch = errors.New("selected device identity changed")
 type Planner struct{ Catalog application.DeviceCatalog }
 
 // Plan creates a read-only operation summary for an image and selected device.
-func (p Planner) Plan(ctx context.Context, img image.Image, expected device.Device) (installation.Plan, error) {
+func (p Planner) Plan(
+	ctx context.Context,
+	img image.Image,
+	expected device.Device,
+) (installation.Plan, error) {
 	current, err := p.Catalog.Resolve(ctx, expected.Path)
 	if err != nil {
 		return installation.Plan{}, err
@@ -27,7 +31,17 @@ func (p Planner) Plan(ctx context.Context, img image.Image, expected device.Devi
 	if current != expected {
 		return installation.Plan{}, ErrIdentityMismatch
 	}
-	plan := installation.Plan{Image: img, Target: current, Summary: fmt.Sprintf("Write %s (%d bytes) to %s (%d bytes)", img.Path, img.SizeBytes, current.Path, current.SizeBytes)}
+	plan := installation.Plan{
+		Image:  img,
+		Target: current,
+		Summary: fmt.Sprintf(
+			"Write %s (%d bytes) to %s (%d bytes)",
+			img.Path,
+			img.SizeBytes,
+			current.Path,
+			current.SizeBytes,
+		),
+	}
 	if err := plan.Validate(); err != nil {
 		return installation.Plan{}, err
 	}

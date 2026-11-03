@@ -26,7 +26,10 @@ func BuildNetworkReport(interfaces []NetworkInterface) NetworkReport {
 	} else {
 		for _, iface := range r.Interfaces {
 			if iface.Name != "lo" && !iface.HasAddress {
-				r.Hypotheses = append(r.Hypotheses, "interface "+iface.Name+" has no assigned IP address")
+				r.Hypotheses = append(
+					r.Hypotheses,
+					"interface "+iface.Name+" has no assigned IP address",
+				)
 			}
 		}
 	}

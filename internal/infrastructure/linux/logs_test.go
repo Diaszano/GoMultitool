@@ -7,7 +7,11 @@ import (
 )
 
 func TestAbsentJournalAndSensitiveRedaction(t *testing.T) {
-	if _, available, err := ReadJournal(filepath.Join(t.TempDir(), "missing"), 1024); err != nil || available {
+	if _, available, err := ReadJournal(
+		filepath.Join(t.TempDir(), "missing"),
+		1024,
+	); err != nil ||
+		available {
 		t.Fatalf("available=%v error=%v", available, err)
 	}
 	input := "password=supersecret token: abc123 PASSWORD=\"two words\"\n-----BEGIN RSA PRIVATE KEY-----\nprivate-data\n-----END RSA PRIVATE KEY-----"

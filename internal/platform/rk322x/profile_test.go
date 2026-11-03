@@ -10,7 +10,14 @@ import (
 )
 
 func TestMatchKnownUnknownAndAmbiguousProfiles(t *testing.T) {
-	profiles := []Profile{{Version: 1, Name: "reference", Compatible: []string{"rockchip,rk3229"}, StorageKinds: []device.Kind{device.KindEMMC}}}
+	profiles := []Profile{
+		{
+			Version:      1,
+			Name:         "reference",
+			Compatible:   []string{"rockchip,rk3229"},
+			StorageKinds: []device.Kind{device.KindEMMC},
+		},
+	}
 	got, err := Match(profiles, []string{"rockchip,rk3229"})
 	if err != nil || got.Name != "reference" {
 		t.Fatalf("profile=%+v error=%v", got, err)
@@ -18,14 +25,21 @@ func TestMatchKnownUnknownAndAmbiguousProfiles(t *testing.T) {
 	if _, err := Match(profiles, []string{"vendor,unknown"}); !errors.Is(err, ErrUnknownBoard) {
 		t.Fatalf("error=%v", err)
 	}
-	profiles = append(profiles, Profile{Version: 1, Name: "ambiguous", Compatible: []string{"rockchip,rk3229"}})
+	profiles = append(
+		profiles,
+		Profile{Version: 1, Name: "ambiguous", Compatible: []string{"rockchip,rk3229"}},
+	)
 	if _, err := Match(profiles, []string{"rockchip,rk3229"}); !errors.Is(err, ErrAmbiguousBoard) {
 		t.Fatalf("error=%v", err)
 	}
 }
 
 func TestLoadProfilesAndRejectStorageNotInProfile(t *testing.T) {
-	profiles, err := Load(strings.NewReader(`[{"version":1,"name":"reference","compatible":["rockchip,rk3229"],"storage_kinds":["emmc"],"allow_bootloader_modification":false}]`))
+	profiles, err := Load(
+		strings.NewReader(
+			`[{"version":1,"name":"reference","compatible":["rockchip,rk3229"],"storage_kinds":["emmc"],"allow_bootloader_modification":false}]`,
+		),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

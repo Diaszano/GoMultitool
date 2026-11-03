@@ -6,8 +6,14 @@ import (
 	"regexp"
 )
 
-var secretPattern = regexp.MustCompile(`(?i)(password|passwd|token|secret|api[_-]?key)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s]+)`)
-var privateKeyPattern = regexp.MustCompile(`(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----`)
+var (
+	secretPattern = regexp.MustCompile(
+		`(?i)(password|passwd|token|secret|api[_-]?key)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s]+)`,
+	)
+	privateKeyPattern = regexp.MustCompile(
+		`(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----`,
+	)
+)
 
 // ReadJournal reads a bounded tail from a regular log file and redacts secrets.
 func ReadJournal(path string, maxBytes int64) (string, bool, error) {

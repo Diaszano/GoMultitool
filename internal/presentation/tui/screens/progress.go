@@ -44,5 +44,11 @@ func (p Progress) View() string {
 		return "Sem dados"
 	}
 	percent := int(float64(p.Done) * 100 / float64(p.Total))
-	return fmt.Sprintf("%s %d%% (%d/%d)", strings.Repeat("█", percent/10)+strings.Repeat("░", 10-percent/10), percent, p.Done, p.Total)
+	return fmt.Sprintf(
+		"%s %d%% (%d/%d)",
+		strings.Repeat("█", percent/10)+strings.Repeat("░", 10-percent/10),
+		percent,
+		p.Done,
+		p.Total,
+	)
 }

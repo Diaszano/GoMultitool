@@ -23,7 +23,13 @@ var ErrInsufficientSpace = errors.New("insufficient destination space")
 type Service struct{}
 
 // Create streams exactly the source size and finalizes data before its manifest.
-func (Service) Create(ctx context.Context, source device.Device, src io.Reader, destination string, availableBytes int64) (backup.Manifest, error) {
+func (Service) Create(
+	ctx context.Context,
+	source device.Device,
+	src io.Reader,
+	destination string,
+	availableBytes int64,
+) (backup.Manifest, error) {
 	if err := source.Validate(); err != nil {
 		return backup.Manifest{}, err
 	}
@@ -90,7 +96,15 @@ func (Service) Create(ctx context.Context, source device.Device, src io.Reader, 
 	if err := os.Rename(tmpName, destination); err != nil {
 		return backup.Manifest{}, err
 	}
-	manifest := backup.Manifest{Version: 1, SourceID: source.ID, SourcePath: source.Path, SizeBytes: source.SizeBytes, LogicalSectorSize: source.LogicalSectorSize, SHA256: hex.EncodeToString(hash.Sum(nil)), Status: backup.StatusComplete}
+	manifest := backup.Manifest{
+		Version:           1,
+		SourceID:          source.ID,
+		SourcePath:        source.Path,
+		SizeBytes:         source.SizeBytes,
+		LogicalSectorSize: source.LogicalSectorSize,
+		SHA256:            hex.EncodeToString(hash.Sum(nil)),
+		Status:            backup.StatusComplete,
+	}
 	manifestTmp, err := os.CreateTemp(dir, ".manifest-*")
 	if err != nil {
 		_ = os.Remove(destination)

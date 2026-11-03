@@ -26,7 +26,9 @@ func RenderMemory(p MemoryPreset, zramManagerExists bool) (MemoryArtifact, error
 		return MemoryArtifact{}, errors.New("invalid swap size or priority")
 	}
 	if zramManagerExists {
-		return MemoryArtifact{}, errors.New("existing ZRAM manager prevents duplicate memory configuration")
+		return MemoryArtifact{}, errors.New(
+			"existing ZRAM manager prevents duplicate memory configuration",
+		)
 	}
 	if p.AvailableMiB < p.SwapMiB {
 		return MemoryArtifact{}, errors.New("insufficient image space for requested swap file")

@@ -9,7 +9,7 @@ import (
 
 func TestOpenReader(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "device")
-	if err := os.WriteFile(path, []byte("device"), 0600); err != nil {
+	if err := os.WriteFile(path, []byte("device"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	r, err := OpenReader(context.Background(), path)

@@ -9,7 +9,9 @@ import (
 )
 
 func TestKeyboardNavigationHardwareEscapeAndQuit(t *testing.T) {
-	m := NewModel(func() ([]device.Device, error) { return []device.Device{{ID: "mmc0", Kind: device.KindEMMC}}, nil })
+	m := NewModel(
+		func() ([]device.Device, error) { return []device.Device{{ID: "mmc0", Kind: device.KindEMMC}}, nil },
+	)
 	m.Update(tea.KeyMsg{Type: tea.KeyDown})
 	if m.cursor != 1 {
 		t.Fatalf("cursor=%d", m.cursor)

@@ -19,6 +19,7 @@ type writerCatalog struct{ d device.Device }
 func (c writerCatalog) List(context.Context) ([]device.Device, error) {
 	return []device.Device{c.d}, nil
 }
+
 func (c writerCatalog) Resolve(_ context.Context, p string) (device.Device, error) {
 	if p != c.d.Path {
 		return device.Device{}, os.ErrNotExist
@@ -70,14 +71,32 @@ func TestInstallerWritesAndVerifies(t *testing.T) {
 	if err := f.Close(); err != nil {
 		t.Fatal(err)
 	}
-	d := device.Device{ID: "usb", Path: "/dev/sdb", Kind: device.KindUSB, SizeBytes: 512, LogicalSectorSize: 512}
+	d := device.Device{
+		ID:                "usb",
+		Path:              "/dev/sdb",
+		Kind:              device.KindUSB,
+		SizeBytes:         512,
+		LogicalSectorSize: 512,
+	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
 	gp, err := g.Plan(context.Background(), d.Path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	plan := installation.Plan{Image: image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512}, Target: d, Summary: "write"}
-	err = (Writer{}).Execute(context.Background(), plan, bytes.NewReader(data), gp, true, g, func(string) (Target, error) { return os.OpenFile(path, os.O_RDWR, 0) })
+	plan := installation.Plan{
+		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
+		Target:  d,
+		Summary: "write",
+	}
+	err = (Writer{}).Execute(
+		context.Background(),
+		plan,
+		bytes.NewReader(data),
+		gp,
+		true,
+		g,
+		func(string) (Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,44 +110,125 @@ func TestInstallerWritesAndVerifies(t *testing.T) {
 }
 
 func TestInstallerRejectsUnconfirmedAndShortSource(t *testing.T) {
-	d := device.Device{ID: "usb", Path: "/dev/sdb", Kind: device.KindUSB, SizeBytes: 512, LogicalSectorSize: 512}
+	d := device.Device{
+		ID:                "usb",
+		Path:              "/dev/sdb",
+		Kind:              device.KindUSB,
+		SizeBytes:         512,
+		LogicalSectorSize: 512,
+	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
 	gp, _ := g.Plan(context.Background(), d.Path)
-	plan := installation.Plan{Image: image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512}, Target: d, Summary: "write"}
-	if err := (Writer{}).Execute(context.Background(), plan, bytes.NewReader(nil), gp, false, g, nil); !errors.Is(err, ErrConfirmationRequired) {
+	plan := installation.Plan{
+		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
+		Target:  d,
+		Summary: "write",
+	}
+	if err := (Writer{}).Execute(
+		context.Background(),
+		plan,
+		bytes.NewReader(nil),
+		gp,
+		false,
+		g,
+		nil,
+	); !errors.Is(
+		err,
+		ErrConfirmationRequired,
+	) {
 		t.Fatalf("error=%v", err)
 	}
-	err := (Writer{}).Execute(context.Background(), plan, bytes.NewReader([]byte("short")), gp, true, g, func(string) (Target, error) { return newFileTarget(t), nil })
+	err := (Writer{}).Execute(
+		context.Background(),
+		plan,
+		bytes.NewReader([]byte("short")),
+		gp,
+		true,
+		g,
+		func(string) (Target, error) { return newFileTarget(t), nil },
+	)
 	if !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Fatalf("error=%v", err)
 	}
 }
 
 func TestInstallerRejectsDecompressionAndShortWriteErrors(t *testing.T) {
-	d := device.Device{ID: "usb", Path: "/dev/sdb", Kind: device.KindUSB, SizeBytes: 512, LogicalSectorSize: 512}
+	d := device.Device{
+		ID:                "usb",
+		Path:              "/dev/sdb",
+		Kind:              device.KindUSB,
+		SizeBytes:         512,
+		LogicalSectorSize: 512,
+	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
 	gp, _ := g.Plan(context.Background(), d.Path)
-	plan := installation.Plan{Image: image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512}, Target: d, Summary: "write"}
-	if err := (Writer{}).Execute(context.Background(), plan, errorReader{}, gp, true, g, func(string) (Target, error) { return newFileTarget(t), nil }); err == nil {
+	plan := installation.Plan{
+		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
+		Target:  d,
+		Summary: "write",
+	}
+	if err := (Writer{}).Execute(
+		context.Background(),
+		plan,
+		errorReader{},
+		gp,
+		true,
+		g,
+		func(string) (Target, error) { return newFileTarget(t), nil },
+	); err == nil {
 		t.Fatal("decompression error ignored")
 	}
-	err := (Writer{}).Execute(context.Background(), plan, bytes.NewReader(bytes.Repeat([]byte("x"), 512)), gp, true, g, func(string) (Target, error) { return shortTarget{}, nil })
+	err := (Writer{}).Execute(
+		context.Background(),
+		plan,
+		bytes.NewReader(bytes.Repeat([]byte("x"), 512)),
+		gp,
+		true,
+		g,
+		func(string) (Target, error) { return shortTarget{}, nil },
+	)
 	if !errors.Is(err, io.ErrShortWrite) {
 		t.Fatalf("error=%v", err)
 	}
 }
 
 func TestInstallerRejectsCancellationAndSyncFailure(t *testing.T) {
-	d := device.Device{ID: "usb", Path: "/dev/sdb", Kind: device.KindUSB, SizeBytes: 512, LogicalSectorSize: 512}
+	d := device.Device{
+		ID:                "usb",
+		Path:              "/dev/sdb",
+		Kind:              device.KindUSB,
+		SizeBytes:         512,
+		LogicalSectorSize: 512,
+	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
 	gp, _ := g.Plan(context.Background(), d.Path)
-	plan := installation.Plan{Image: image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512}, Target: d, Summary: "write"}
+	plan := installation.Plan{
+		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
+		Target:  d,
+		Summary: "write",
+	}
 	ctx, cancel := context.WithCancel(context.Background())
-	err := (Writer{}).Execute(ctx, plan, &cancelReader{cancel: cancel}, gp, true, g, func(string) (Target, error) { return newFileTarget(t), nil })
+	err := (Writer{}).Execute(
+		ctx,
+		plan,
+		&cancelReader{cancel: cancel},
+		gp,
+		true,
+		g,
+		func(string) (Target, error) { return newFileTarget(t), nil },
+	)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("error=%v", err)
 	}
-	err = (Writer{}).Execute(context.Background(), plan, bytes.NewReader(bytes.Repeat([]byte("x"), 512)), gp, true, g, func(string) (Target, error) { return syncErrorTarget{Target: newFileTarget(t)}, nil })
+	err = (Writer{}).Execute(
+		context.Background(),
+		plan,
+		bytes.NewReader(bytes.Repeat([]byte("x"), 512)),
+		gp,
+		true,
+		g,
+		func(string) (Target, error) { return syncErrorTarget{Target: newFileTarget(t)}, nil },
+	)
 	if err == nil || err.Error() != "sync failed" {
 		t.Fatalf("error=%v", err)
 	}

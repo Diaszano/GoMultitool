@@ -37,14 +37,17 @@ func (c SysfsCatalog) isBootMedia(path string) bool {
 			return sameDeviceOrPartition(root, path)
 		}
 		parts := strings.SplitN(root, "=", 2)
-		if len(parts) != 2 || !map[string]bool{"UUID": true, "PARTUUID": true, "LABEL": true, "PARTLABEL": true}[parts[0]] {
+		if len(parts) != 2 ||
+			!map[string]bool{"UUID": true, "PARTUUID": true, "LABEL": true, "PARTLABEL": true}[parts[0]] {
 			return true
 		}
 		devRoot := c.DevRoot
 		if devRoot == "" {
 			devRoot = "/dev"
 		}
-		link, err := filepath.EvalSymlinks(filepath.Join(devRoot, "disk", strings.ToLower(parts[0]), parts[1]))
+		link, err := filepath.EvalSymlinks(
+			filepath.Join(devRoot, "disk", strings.ToLower(parts[0]), parts[1]),
+		)
 		if err != nil {
 			return true
 		}
@@ -65,5 +68,6 @@ func sameDeviceOrPartition(source, device string) bool {
 	if strings.HasPrefix(parent, "mmcblk") || strings.HasPrefix(parent, "nvme") {
 		suffix = strings.TrimPrefix(suffix, "p")
 	}
-	return suffix != "" && partitionSuffix.MatchString(suffix) && strings.Trim(suffix, "0123456789") == ""
+	return suffix != "" && partitionSuffix.MatchString(suffix) &&
+		strings.Trim(suffix, "0123456789") == ""
 }

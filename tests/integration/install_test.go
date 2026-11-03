@@ -18,6 +18,7 @@ type installCatalog struct{ d device.Device }
 func (c installCatalog) List(context.Context) ([]device.Device, error) {
 	return []device.Device{c.d}, nil
 }
+
 func (c installCatalog) Resolve(_ context.Context, p string) (device.Device, error) {
 	if p != c.d.Path {
 		return device.Device{}, os.ErrNotExist
@@ -38,14 +39,32 @@ func TestInstallTemporaryFileReadback(t *testing.T) {
 	if err = f.Close(); err != nil {
 		t.Fatal(err)
 	}
-	d := device.Device{ID: "usb", Path: "/dev/sdb", Kind: device.KindUSB, SizeBytes: 512, LogicalSectorSize: 512}
+	d := device.Device{
+		ID:                "usb",
+		Path:              "/dev/sdb",
+		Kind:              device.KindUSB,
+		SizeBytes:         512,
+		LogicalSectorSize: 512,
+	}
 	g := storageguard.Guard{Catalog: installCatalog{d}}
 	gp, err := g.Plan(context.Background(), d.Path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	plan := installation.Plan{Image: image.Image{Path: "fixture.img", Format: image.FormatRaw, SizeBytes: 512}, Target: d, Summary: "Write fixture.img to /dev/sdb"}
-	err = (installer.Writer{}).Execute(context.Background(), plan, bytes.NewReader(data), gp, true, g, func(string) (installer.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) })
+	plan := installation.Plan{
+		Image:   image.Image{Path: "fixture.img", Format: image.FormatRaw, SizeBytes: 512},
+		Target:  d,
+		Summary: "Write fixture.img to /dev/sdb",
+	}
+	err = (installer.Writer{}).Execute(
+		context.Background(),
+		plan,
+		bytes.NewReader(data),
+		gp,
+		true,
+		g,
+		func(string) (installer.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
+	)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -42,7 +42,10 @@ func ParseMBR(r io.ReaderAt, diskBytes int64) ([]Partition, error) {
 		if count == 0 || start+count < start || (start+count)*512 > uint64(diskBytes) {
 			return nil, ErrInvalidPartitionTable
 		}
-		partitions = append(partitions, Partition{Number: i + 1, Type: typ, StartSector: start, SectorCount: count})
+		partitions = append(
+			partitions,
+			Partition{Number: i + 1, Type: typ, StartSector: start, SectorCount: count},
+		)
 	}
 	return partitions, nil
 }

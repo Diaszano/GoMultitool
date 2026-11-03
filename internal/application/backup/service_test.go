@@ -34,8 +34,20 @@ func (r *cancelReader) Read(p []byte) (int, error) {
 func TestBackupWritesDataAndManifest(t *testing.T) {
 	dir := t.TempDir()
 	dest := filepath.Join(dir, "backup.img")
-	source := device.Device{ID: "mmc0", Path: "/dev/mmc0", Kind: device.KindEMMC, SizeBytes: 512, LogicalSectorSize: 512}
-	result, err := (Service{}).Create(context.Background(), source, bytes.NewReader(bytes.Repeat([]byte("d"), 512)), dest, 1024)
+	source := device.Device{
+		ID:                "mmc0",
+		Path:              "/dev/mmc0",
+		Kind:              device.KindEMMC,
+		SizeBytes:         512,
+		LogicalSectorSize: 512,
+	}
+	result, err := (Service{}).Create(
+		context.Background(),
+		source,
+		bytes.NewReader(bytes.Repeat([]byte("d"), 512)),
+		dest,
+		1024,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +73,19 @@ func TestBackupRejectsSpaceAndReadFailuresWithoutManifest(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dest := filepath.Join(t.TempDir(), "backup.img")
-			_, err := (Service{}).Create(context.Background(), device.Device{ID: "mmc0", Path: "/dev/mmc0", Kind: device.KindEMMC, SizeBytes: 512, LogicalSectorSize: 512}, tc.src, dest, tc.available)
+			_, err := (Service{}).Create(
+				context.Background(),
+				device.Device{
+					ID:                "mmc0",
+					Path:              "/dev/mmc0",
+					Kind:              device.KindEMMC,
+					SizeBytes:         512,
+					LogicalSectorSize: 512,
+				},
+				tc.src,
+				dest,
+				tc.available,
+			)
 			if err == nil {
 				t.Fatal("Create succeeded")
 			}
@@ -75,14 +99,38 @@ func TestBackupRejectsSpaceAndReadFailuresWithoutManifest(t *testing.T) {
 func TestBackupCancellationAndUnexpectedEOF(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	dest := filepath.Join(t.TempDir(), "backup.img")
-	_, err := (Service{}).Create(ctx, device.Device{ID: "mmc0", Path: "/dev/mmc0", Kind: device.KindEMMC, SizeBytes: 512, LogicalSectorSize: 512}, &cancelReader{cancel: cancel}, dest, 1024)
+	_, err := (Service{}).Create(
+		ctx,
+		device.Device{
+			ID:                "mmc0",
+			Path:              "/dev/mmc0",
+			Kind:              device.KindEMMC,
+			SizeBytes:         512,
+			LogicalSectorSize: 512,
+		},
+		&cancelReader{cancel: cancel},
+		dest,
+		1024,
+	)
 	if err == nil {
 		t.Fatal("canceled backup succeeded")
 	}
 	if _, err := os.Stat(dest + ".json"); !os.IsNotExist(err) {
 		t.Fatalf("manifest exists: %v", err)
 	}
-	_, err = (Service{}).Create(context.Background(), device.Device{ID: "mmc0", Path: "/dev/mmc0", Kind: device.KindEMMC, SizeBytes: 512, LogicalSectorSize: 512}, bytes.NewReader([]byte("short")), dest, 1024)
+	_, err = (Service{}).Create(
+		context.Background(),
+		device.Device{
+			ID:                "mmc0",
+			Path:              "/dev/mmc0",
+			Kind:              device.KindEMMC,
+			SizeBytes:         512,
+			LogicalSectorSize: 512,
+		},
+		bytes.NewReader([]byte("short")),
+		dest,
+		1024,
+	)
 	if !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Fatalf("error = %v", err)
 	}

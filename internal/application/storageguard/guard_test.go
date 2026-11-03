@@ -17,8 +17,18 @@ func (f catalogFunc) Resolve(ctx context.Context, path string) (device.Device, e
 }
 
 func TestPlanAndRevalidate(t *testing.T) {
-	current := device.Device{ID: "mmc0", Path: "/dev/mmc0", Kind: device.KindEMMC, SizeBytes: 1 << 20, LogicalSectorSize: 512}
-	g := Guard{Catalog: catalogFunc(func(context.Context, string) (device.Device, error) { return current, nil })}
+	current := device.Device{
+		ID:                "mmc0",
+		Path:              "/dev/mmc0",
+		Kind:              device.KindEMMC,
+		SizeBytes:         1 << 20,
+		LogicalSectorSize: 512,
+	}
+	g := Guard{
+		Catalog: catalogFunc(
+			func(context.Context, string) (device.Device, error) { return current, nil },
+		),
+	}
 	plan, err := g.Plan(context.Background(), current.Path)
 	if err != nil {
 		t.Fatal(err)

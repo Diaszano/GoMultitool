@@ -26,6 +26,7 @@ func (r *fakeRunner) Run(_ context.Context, name string, args ...string) ([]byte
 	}
 	return nil, nil
 }
+
 func imageFixture(t *testing.T, ext4 bool) string {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "disk.img")
@@ -38,7 +39,7 @@ func imageFixture(t *testing.T, ext4 bool) string {
 	if ext4 {
 		data[2048*512+1080], data[2048*512+1081] = 0x53, 0xef
 	}
-	if err := os.WriteFile(path, data, 0600); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	return path
@@ -46,7 +47,10 @@ func imageFixture(t *testing.T, ext4 bool) string {
 
 func TestImageMounterMountsAndCleansUp(t *testing.T) {
 	runner := &fakeRunner{}
-	mount, cleanup, err := (ImageMounter{Runner: runner}).Mount(context.Background(), imageFixture(t, true))
+	mount, cleanup, err := (ImageMounter{Runner: runner}).Mount(
+		context.Background(),
+		imageFixture(t, true),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,6 +64,7 @@ func TestImageMounterMountsAndCleansUp(t *testing.T) {
 		t.Fatalf("calls=%v", runner.calls)
 	}
 }
+
 func TestImageMounterRejectsMalformedAndCleansLoopOnMountFailure(t *testing.T) {
 	runner := &fakeRunner{fail: "mount"}
 	_, _, err := (ImageMounter{Runner: runner}).Mount(context.Background(), imageFixture(t, true))
@@ -70,7 +75,10 @@ func TestImageMounterRejectsMalformedAndCleansLoopOnMountFailure(t *testing.T) {
 		t.Fatalf("cleanup calls=%v", runner.calls)
 	}
 	runner = &fakeRunner{}
-	if _, _, err := (ImageMounter{Runner: runner}).Mount(context.Background(), imageFixture(t, false)); err == nil {
+	if _, _, err := (ImageMounter{Runner: runner}).Mount(
+		context.Background(),
+		imageFixture(t, false),
+	); err == nil {
 		t.Fatal("image without ext4 root accepted")
 	}
 }
