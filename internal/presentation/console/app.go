@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
+	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 )
 
 // Run serves the numeric menu using only line-oriented input and output.
@@ -16,16 +17,20 @@ func Run(
 	input io.Reader,
 	output io.Writer,
 	inventory func(context.Context) ([]device.Device, error),
+	catalog i18n.Catalog,
 ) error {
 	in := bufio.NewScanner(input)
 	for {
-		if _, err := fmt.Fprintln(
+		if _, err := fmt.Fprintf(
 			output,
-			"RK322x Multitool\n1. Informações de hardware\n0. Sair",
+			"%s\n1. %s\n0. %s\n",
+			catalog.ConsoleTitle,
+			catalog.ConsoleHardwareOption,
+			catalog.ConsoleExitOption,
 		); err != nil {
 			return err
 		}
-		if _, err := fmt.Fprint(output, "Escolha: "); err != nil {
+		if _, err := fmt.Fprint(output, catalog.ConsolePrompt); err != nil {
 			return err
 		}
 		if !in.Scan() {
@@ -40,13 +45,18 @@ func Run(
 		case "1":
 			devices, err := inventory(context.Background())
 			if err != nil {
-				if _, writeErr := fmt.Fprintf(output, "Erro: %v\n", err); writeErr != nil {
+				if _, writeErr := fmt.Fprintf(
+					output,
+					"%s%v\n",
+					catalog.ErrorPrefix,
+					err,
+				); writeErr != nil {
 					return writeErr
 				}
 				continue
 			}
 			if len(devices) == 0 {
-				if _, err := fmt.Fprintln(output, "Nenhum dispositivo encontrado."); err != nil {
+				if _, err := fmt.Fprintln(output, catalog.EmptyInventory); err != nil {
 					return err
 				}
 				continue
@@ -63,7 +73,7 @@ func Run(
 				}
 			}
 		default:
-			if _, err := fmt.Fprintln(output, "Opção inválida."); err != nil {
+			if _, err := fmt.Fprintln(output, catalog.InvalidOption); err != nil {
 				return err
 			}
 		}

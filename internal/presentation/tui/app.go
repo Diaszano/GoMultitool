@@ -5,105 +5,84 @@ import (
 	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 	"github.com/Diaszano/GoMultitool/internal/presentation/tui/screens"
 )
 
-type screen uint8
-
-const (
-	screenHome screen = iota
-	screenHardware
-)
-
-// Model contains the TUI navigation state and hardware inventory use case.
-type Model struct {
-	cursor    int
-	screen    screen
-	devices   []device.Device
-	errorText string
-	Hardware  func() ([]device.Device, error)
+// New builds the full-screen terminal application.
+func New(hardware func() ([]device.Device, error), catalog i18n.Catalog) *tview.Application {
+	app, _, _ := newApp(hardware, catalog)
+	return app
 }
 
-// NewModel creates the terminal interface with its inventory callback.
-func NewModel(hardware func() ([]device.Device, error)) *Model { return &Model{Hardware: hardware} }
+func newApp(
+	hardware func() ([]device.Device, error),
+	catalog i18n.Catalog,
+) (*tview.Application, *tview.List, *tview.TextView) {
+	app := tview.NewApplication()
+	var showingHardware bool
+	var hardwareView *tview.TextView
 
-// Init starts the interface without background work.
-func (m *Model) Init() tea.Cmd { return nil }
-
-// Update applies keyboard navigation events.
-func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	key, ok := msg.(tea.KeyMsg)
-	if !ok {
-		return m, nil
-	}
-	switch key.Type {
-	case tea.KeyCtrlC:
-		return m, tea.Quit
-	case tea.KeyEsc:
-		if m.screen == screenHardware {
-			m.screen = screenHome
-		}
-		return m, nil
-	case tea.KeyUp:
-		if m.screen == screenHome && m.cursor > 0 {
-			m.cursor--
-		}
-		return m, nil
-	case tea.KeyDown:
-		if m.screen == screenHome && m.cursor < len(i18n.MainMenu)-1 {
-			m.cursor++
-		}
-		return m, nil
-	case tea.KeyEnter:
-		if m.screen == screenHome {
-			if m.cursor == 1 {
-				return m, tea.Quit
+	list := screens.Home(catalog, func(id i18n.MenuItemID) {
+		switch id {
+		case i18n.MenuHardware:
+			var devices []device.Device
+			var err error
+			if hardware != nil {
+				devices, err = hardware()
 			}
-			if m.Hardware != nil {
-				var err error
-				m.devices, err = m.Hardware()
-				if err != nil {
-					m.errorText = err.Error()
-				}
-			}
-			m.screen = screenHardware
+			hardwareView.SetText(renderHardware(devices, err, catalog))
+			showingHardware = true
+			app.SetRoot(tview.NewFlex().SetDirection(tview.FlexRow).
+				AddItem(hardwareView, 0, 1, true).
+				AddItem(tview.NewTextView().SetText(catalog.Navigation), 1, 0, false), true)
+		case i18n.MenuExit:
+			app.Stop()
 		}
-		return m, nil
-	}
-	if key.Type == tea.KeyRunes && strings.EqualFold(string(key.Runes), "q") {
-		return m, tea.Quit
-	}
-	return m, nil
+	})
+	list.SetTitle(catalog.ProductName).SetBorder(true)
+	hardwareView = tview.NewTextView().SetDynamicColors(false).SetScrollable(true)
+	hardwareView.SetBorder(true).SetTitle(catalog.HardwareTitle)
+	app.SetRoot(homeRoot(list, catalog), true)
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyRune && strings.EqualFold(string(event.Rune()), "q") {
+			app.Stop()
+			return nil
+		}
+		if event.Key() == tcell.KeyEscape && showingHardware {
+			showingHardware = false
+			app.SetRoot(homeRoot(list, catalog), true)
+			return nil
+		}
+		return event
+	})
+	return app, list, hardwareView
 }
 
-// View renders the current screen.
-func (m *Model) View() string {
-	if m.screen == screenHome {
-		return screens.Home(m.cursor)
+func homeRoot(list *tview.List, catalog i18n.Catalog) tview.Primitive {
+	return tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(list, 0, 1, true).
+		AddItem(tview.NewTextView().SetText(catalog.Navigation), 1, 0, false)
+}
+
+func renderHardware(devices []device.Device, err error, catalog i18n.Catalog) string {
+	if err != nil {
+		return catalog.ErrorPrefix + err.Error()
 	}
-	var b strings.Builder
-	b.WriteString(lipgloss.NewStyle().Bold(true).Render(i18n.HardwareTitle))
-	b.WriteString("\n\n")
-	switch {
-	case m.errorText != "":
-		b.WriteString("Erro: " + m.errorText)
-	case len(m.devices) == 0:
-		b.WriteString(i18n.EmptyInventory)
-	default:
-		for _, d := range m.devices {
-			fmt.Fprintf(&b, "%s  %s  %s  %d bytes", d.Path, d.Kind, d.ID, d.SizeBytes)
-			if d.Mounted {
-				b.WriteString("  (montado)")
-			}
-			b.WriteByte('\n')
+	if len(devices) == 0 {
+		return catalog.EmptyInventory
+	}
+	var output strings.Builder
+	for _, d := range devices {
+		fmt.Fprintf(&output, "%s  %s  %s  %d bytes", d.Path, d.Kind, d.ID, d.SizeBytes)
+		if d.Mounted {
+			fmt.Fprintf(&output, "  (%s)", catalog.MountedLabel)
 		}
+		output.WriteByte('\n')
 	}
-	b.WriteString("\n\n")
-	b.WriteString(i18n.Navigation)
-	return b.String()
+	return output.String()
 }
