@@ -1,0 +1,1 @@
+feat(scope_name): invalid scope

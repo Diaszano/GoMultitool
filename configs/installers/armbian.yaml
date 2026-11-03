@@ -1,0 +1,15 @@
+{
+  "os_id": "armbian",
+  "minimum_version": "26.08",
+  "schema_version": 1,
+  "supported_variables": [
+    "PRESET_ROOT_PASSWORD",
+    "PRESET_USER_NAME",
+    "PRESET_USER_PASSWORD",
+    "PRESET_DEFAULT_REALNAME",
+    "PRESET_LOCALE",
+    "PRESET_TIMEZONE",
+    "PRESET_NET_ETHERNET_ENABLED",
+    "PRESET_NET_CHANGE_DEFAULTS"
+  ]
+}

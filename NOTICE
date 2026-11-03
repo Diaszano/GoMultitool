@@ -1,0 +1,3 @@
+This repository preserves the RK322x Multitool recovery project authored by Paolo Sabatino. The recorded upstream baseline is commit d7dc392fe33850f5975aa466538fd889629c430c; see docs/architecture/upstream-baseline.md. The root LICENSE contains the GNU General Public License version 2 text.
+
+Bundled bootloader, kernel, device-tree, TrustZone firmware, and utility binaries may carry separate copyright or redistribution terms. Their presence in this repository is not a blanket permission to redistribute them; review the source and component-specific notices before packaging or distribution.

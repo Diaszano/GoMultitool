@@ -48,10 +48,16 @@ TS_SOURCES_PATH="$CWD/sources/${TARGET_CONF}"
 # Destination path and image
 DIST_PATH="${CWD}/dist-${TARGET_CONF}"
 DEST_IMAGE="${DIST_PATH}/multitool.img"
+ROOTFS_IMAGE=${ROOTFS_IMAGE:-"$DIST_PATH/root.img"}
+
+if [ -L "$ROOTFS_IMAGE" ] || { [ -e "$ROOTFS_IMAGE" ] && [ ! -f "$ROOTFS_IMAGE" ]; }; then
+	echo "Invalid root filesystem image path: $ROOTFS_IMAGE" >&2
+	exit 1
+fi
 
 mkdir -p "$DIST_PATH"
 
-if [ ! -f "$DIST_PATH/root.img" ]; then
+if [ ! -f "$ROOTFS_IMAGE" ]; then
 
 	echo -n "Creating debian base rootfs. This will take a while..."
 
@@ -68,7 +74,7 @@ if [ ! -f "$DIST_PATH/root.img" ]; then
 	echo "done!"
 
 	echo -n "Creating squashfs from rootfs..."
-	mksquashfs rootfs "$DIST_PATH/root.img" -noappend -all-root > /dev/null 2>&1
+	mksquashfs rootfs "$ROOTFS_IMAGE" -noappend -all-root > /dev/null 2>&1
 
 	if [ $? -ne 0 ]; then
 		echo -e "\nfailed"
@@ -79,7 +85,7 @@ if [ ! -f "$DIST_PATH/root.img" ]; then
 
 fi
 
-ROOTFS_SIZE=$(du "$DIST_PATH/root.img" | cut -f 1)
+ROOTFS_SIZE=$(du "$ROOTFS_IMAGE" | cut -f 1)
 ROOTFS_SECTORS=$(($ROOTFS_SIZE * 2))
 ROOTFS_SECTORS=$(round_sectors $ROOTFS_SECTORS)
 
@@ -202,7 +208,7 @@ if [ ! -b "$NTFS_PARTITION" ]; then
 fi
 
 echo "Copying squashfs rootfilesystem"
-dd if="${DIST_PATH}/root.img" of="$SQUASHFS_PARTITION" bs=4k conv=sync,fsync >/dev/null 2>&1
+dd if="$ROOTFS_IMAGE" of="$SQUASHFS_PARTITION" bs=4k conv=sync,fsync >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
 	echo "Could not install squashfs filesystem"
