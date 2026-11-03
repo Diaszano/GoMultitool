@@ -99,8 +99,7 @@ cd "$CWD"
 echo "-> rootfs size: ${ROOTFS_SIZE}kb"
 
 echo "Creating empty image in $DEST_IMAGE"
-#dd if=/dev/zero of="$DEST_IMAGE" bs=1M count=1024 conv=sync,fsync >/dev/null 2>&1
-fallocate -l 512M "$DEST_IMAGE" >/dev/null 2>&1
+truncate -s 512M "$DEST_IMAGE" >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
 	echo "Error while creating $DEST_IMAGE empty file"
