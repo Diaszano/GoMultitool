@@ -15,5 +15,10 @@ func main() {
 	}
 
 	info := buildinfo.Current()
-	fmt.Printf("RK322x Multitool %s\nCommit: %s\nBuild: %s\n", info.Version, info.Commit, info.BuildTime)
+	fmt.Printf(
+		"RK322x Multitool %s\nCommit: %s\nBuild: %s\n",
+		info.Version,
+		info.Commit,
+		info.BuildTime,
+	)
 }
