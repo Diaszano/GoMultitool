@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
+
 	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/diagnostics"
 	"github.com/Diaszano/GoMultitool/internal/application/discovery"
@@ -16,7 +18,6 @@ import (
 	linuxsys "github.com/Diaszano/GoMultitool/internal/infrastructure/linux"
 	"github.com/Diaszano/GoMultitool/internal/presentation/console"
 	"github.com/Diaszano/GoMultitool/internal/presentation/tui"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {

@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 	"github.com/Diaszano/GoMultitool/internal/presentation/tui/styles"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // Confirmation requires an explicit key press before a destructive operation.

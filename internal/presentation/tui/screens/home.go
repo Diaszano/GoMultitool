@@ -4,8 +4,9 @@ package screens
 import (
 	"strings"
 
-	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 )
 
 // Home renders the main menu with its selected item highlighted.
