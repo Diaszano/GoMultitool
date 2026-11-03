@@ -14,10 +14,19 @@ func Home(selected int) string {
 	var rows []string
 	for i, label := range i18n.MainMenu {
 		if i == selected {
-			rows = append(rows, lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("10")).Render("› "+label))
+			rows = append(
+				rows,
+				lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("10")).Render("› "+label),
+			)
 		} else {
 			rows = append(rows, "  "+label)
 		}
 	}
-	return lipgloss.NewStyle().Bold(true).Render(i18n.Title) + "\n\n" + strings.Join(rows, "\n") + "\n\n" + i18n.Navigation
+	return lipgloss.NewStyle().
+		Bold(true).
+		Render(i18n.Title) +
+		"\n\n" + strings.Join(
+		rows,
+		"\n",
+	) + "\n\n" + i18n.Navigation
 }

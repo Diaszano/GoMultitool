@@ -31,7 +31,9 @@ type Device struct {
 
 // Validate rejects incomplete or unsupported device metadata.
 func (d Device) Validate() error {
-	if d.ID == "" || d.Path == "" || d.SizeBytes <= 0 || (d.LogicalSectorSize != 512 && d.LogicalSectorSize != 4096) || d.SizeBytes%d.LogicalSectorSize != 0 {
+	if d.ID == "" || d.Path == "" || d.SizeBytes <= 0 ||
+		(d.LogicalSectorSize != 512 && d.LogicalSectorSize != 4096) ||
+		d.SizeBytes%d.LogicalSectorSize != 0 {
 		return ErrInvalidDevice
 	}
 	switch d.Kind {

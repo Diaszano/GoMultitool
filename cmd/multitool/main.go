@@ -24,7 +24,9 @@ func main() {
 	catalog := linuxsys.SysfsCatalog{SysRoot: "/sys", ProcRoot: "/proc"}
 	if len(os.Args) == 2 && os.Args[1] == "tui" {
 		service := discovery.Service{Catalog: catalog}
-		model := tui.NewModel(func() ([]device.Device, error) { return service.Inventory(context.Background()) })
+		model := tui.NewModel(
+			func() ([]device.Device, error) { return service.Inventory(context.Background()) },
+		)
 		_, err := tea.NewProgram(model).Run()
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err)
@@ -46,7 +48,13 @@ func main() {
 func run(args []string, catalog application.DeviceCatalog, stdout, stderr io.Writer) int {
 	if len(args) == 1 && args[0] == "version" {
 		info := buildinfo.Current()
-		if _, err := fmt.Fprintf(stdout, "RK322x Multitool %s\nCommit: %s\nBuild: %s\n", info.Version, info.Commit, info.BuildTime); err != nil {
+		if _, err := fmt.Fprintf(
+			stdout,
+			"RK322x Multitool %s\nCommit: %s\nBuild: %s\n",
+			info.Version,
+			info.Commit,
+			info.BuildTime,
+		); err != nil {
 			return 1
 		}
 		return 0
@@ -87,6 +95,9 @@ func run(args []string, catalog application.DeviceCatalog, stdout, stderr io.Wri
 		}
 		return 0
 	}
-	_, _ = fmt.Fprintln(stderr, "Usage: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console")
+	_, _ = fmt.Fprintln(
+		stderr,
+		"Usage: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
+	)
 	return 2
 }

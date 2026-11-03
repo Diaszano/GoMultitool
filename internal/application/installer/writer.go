@@ -25,7 +25,15 @@ type Target interface {
 type Writer struct{}
 
 // Execute streams the planned image to its revalidated target and verifies readback.
-func (Writer) Execute(ctx context.Context, plan installation.Plan, source io.Reader, targetPlan storageguard.Plan, confirmed bool, guard storageguard.Guard, openTarget func(string) (Target, error)) (retErr error) {
+func (Writer) Execute(
+	ctx context.Context,
+	plan installation.Plan,
+	source io.Reader,
+	targetPlan storageguard.Plan,
+	confirmed bool,
+	guard storageguard.Guard,
+	openTarget func(string) (Target, error),
+) (retErr error) {
 	if err := plan.Validate(); err != nil {
 		return err
 	}

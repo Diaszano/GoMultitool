@@ -11,7 +11,10 @@ import (
 func HasZRAMManager(root string) bool {
 	for _, name := range []string{"zramswap.service", "systemd-zram-setup@.service", "zram-config.service"} {
 		for _, dir := range []string{"etc/systemd/system", "lib/systemd/system", "usr/lib/systemd/system"} {
-			if info, err := os.Stat(root + "/" + dir + "/" + name); err == nil && info.Mode().IsRegular() {
+			if info, err := os.Stat(
+				root + "/" + dir + "/" + name,
+			); err == nil &&
+				info.Mode().IsRegular() {
 				return true
 			}
 		}

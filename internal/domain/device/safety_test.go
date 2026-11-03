@@ -6,7 +6,13 @@ import (
 )
 
 func TestDeviceValidateWriteTarget(t *testing.T) {
-	base := Device{ID: "mmc0", Path: "/dev/mmc0", Kind: KindEMMC, SizeBytes: 1 << 20, LogicalSectorSize: 512}
+	base := Device{
+		ID:                "mmc0",
+		Path:              "/dev/mmc0",
+		Kind:              KindEMMC,
+		SizeBytes:         1 << 20,
+		LogicalSectorSize: 512,
+	}
 	for _, tc := range []struct {
 		name string
 		edit func(*Device)

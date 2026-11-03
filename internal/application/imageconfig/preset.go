@@ -18,10 +18,12 @@ var (
 	ErrUnsupportedVariable = errors.New("unsupported Armbian first-boot variable")
 )
 
-var userPattern = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
-var hostPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$`)
-var localePattern = regexp.MustCompile(`^[A-Za-z]{2,3}_[A-Za-z]{2,3}\.UTF-8$`)
-var zonePattern = regexp.MustCompile(`^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$`)
+var (
+	userPattern   = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
+	hostPattern   = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$`)
+	localePattern = regexp.MustCompile(`^[A-Za-z]{2,3}_[A-Za-z]{2,3}\.UTF-8$`)
+	zonePattern   = regexp.MustCompile(`^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$`)
+)
 
 // Preset contains requested first-boot settings. Passwords and keys are never logged.
 type Preset struct {
@@ -37,7 +39,16 @@ type Preset struct {
 
 // Validate rejects unsafe identifiers, secrets, and public-key values.
 func (p Preset) Validate() error {
-	if !userPattern.MatchString(p.UserName) || len(p.RootPassword) < 8 || len(p.RootPassword) > 128 || len(p.UserPassword) < 8 || len(p.UserPassword) > 128 || p.RealName == "" || strings.ContainsAny(p.RealName, "\r\n\x00") || !hostPattern.MatchString(p.Hostname) || !localePattern.MatchString(p.Locale) || !zonePattern.MatchString(p.Timezone) || strings.ContainsAny(p.RootPassword+p.UserPassword, "\r\n\x00") {
+	if !userPattern.MatchString(p.UserName) || len(p.RootPassword) < 8 ||
+		len(p.RootPassword) > 128 ||
+		len(p.UserPassword) < 8 ||
+		len(p.UserPassword) > 128 ||
+		p.RealName == "" ||
+		strings.ContainsAny(p.RealName, "\r\n\x00") ||
+		!hostPattern.MatchString(p.Hostname) ||
+		!localePattern.MatchString(p.Locale) ||
+		!zonePattern.MatchString(p.Timezone) ||
+		strings.ContainsAny(p.RootPassword+p.UserPassword, "\r\n\x00") {
 		return ErrInvalidPreset
 	}
 	if p.SSHAuthorizedKey != "" {

@@ -9,10 +9,14 @@ import (
 
 func TestBootReportMissingJournalFilesAndRootUUIDMismatch(t *testing.T) {
 	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, "etc"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "etc"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "etc/fstab"), []byte("UUID=wrong / ext4 defaults 0 1\n"), 0600); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "etc/fstab"),
+		[]byte("UUID=wrong / ext4 defaults 0 1\n"),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
 	r := CollectBootReport(root, "root=UUID=expected")
@@ -29,12 +33,17 @@ func TestBootReportMissingJournalFilesAndRootUUIDMismatch(t *testing.T) {
 		t.Fatal("missing boot files not reported")
 	}
 }
+
 func TestBootReportMatchingRootUUID(t *testing.T) {
 	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, "etc"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "etc"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "etc/fstab"), []byte("UUID=expected / ext4 defaults 0 1\n"), 0600); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "etc/fstab"),
+		[]byte("UUID=expected / ext4 defaults 0 1\n"),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
 	r := CollectBootReport(root, "root=UUID=expected")

@@ -72,7 +72,13 @@ func (c SysfsCatalog) readDevice(name string) (device.Device, error) {
 		return device.Device{}, fmt.Errorf("read %s logical sector size: %w", name, err)
 	}
 	removable, _ := os.ReadFile(filepath.Join(root, "removable"))
-	d := device.Device{ID: name, Path: filepath.Join("/dev", name), SizeBytes: sectors * 512, LogicalSectorSize: sectorSize, Removable: strings.TrimSpace(string(removable)) == "1"}
+	d := device.Device{
+		ID:                name,
+		Path:              filepath.Join("/dev", name),
+		SizeBytes:         sectors * 512,
+		LogicalSectorSize: sectorSize,
+		Removable:         strings.TrimSpace(string(removable)) == "1",
+	}
 	d.Kind = c.classify(root, d.Removable)
 	d.Mounted = c.isMounted(d.Path)
 	d.BootMedia = c.isBootMedia(d.Path)

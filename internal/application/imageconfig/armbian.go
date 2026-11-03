@@ -41,13 +41,23 @@ func LoadCompatibility(r io.Reader) (Compatibility, error) {
 
 // Render creates first-boot, hostname, and optional SSH key files.
 func Render(profile Compatibility, version string, p Preset) (Artifacts, error) {
-	if profile.OSID != "armbian" || profile.SchemaVersion != 1 || !versionAtLeast(version, profile.MinimumVersion) {
+	if profile.OSID != "armbian" || profile.SchemaVersion != 1 ||
+		!versionAtLeast(version, profile.MinimumVersion) {
 		return Artifacts{}, ErrUnsupportedImage
 	}
 	if err := p.Validate(); err != nil {
 		return Artifacts{}, err
 	}
-	values := map[string]string{"PRESET_ROOT_PASSWORD": p.RootPassword, "PRESET_USER_NAME": p.UserName, "PRESET_USER_PASSWORD": p.UserPassword, "PRESET_DEFAULT_REALNAME": p.RealName, "PRESET_LOCALE": p.Locale, "PRESET_TIMEZONE": p.Timezone, "PRESET_NET_ETHERNET_ENABLED": "1", "PRESET_NET_CHANGE_DEFAULTS": "0"}
+	values := map[string]string{
+		"PRESET_ROOT_PASSWORD":        p.RootPassword,
+		"PRESET_USER_NAME":            p.UserName,
+		"PRESET_USER_PASSWORD":        p.UserPassword,
+		"PRESET_DEFAULT_REALNAME":     p.RealName,
+		"PRESET_LOCALE":               p.Locale,
+		"PRESET_TIMEZONE":             p.Timezone,
+		"PRESET_NET_ETHERNET_ENABLED": "1",
+		"PRESET_NET_CHANGE_DEFAULTS":  "0",
+	}
 	for name := range values {
 		if !contains(profile.SupportedVariables, name) {
 			return Artifacts{}, fmt.Errorf("%w: %s", ErrUnsupportedVariable, name)
@@ -57,9 +67,15 @@ func Render(profile Compatibility, version string, p Preset) (Artifacts, error) 
 	for _, name := range []string{"PRESET_ROOT_PASSWORD", "PRESET_USER_NAME", "PRESET_USER_PASSWORD", "PRESET_DEFAULT_REALNAME", "PRESET_LOCALE", "PRESET_TIMEZONE", "PRESET_NET_ETHERNET_ENABLED", "PRESET_NET_CHANGE_DEFAULTS"} {
 		fmt.Fprintf(&b, "%s=\"%s\"\n", name, quote(values[name]))
 	}
-	files := map[string]File{"root/.not_logged_in_yet": {Data: b.Bytes(), Mode: 0600}, "etc/hostname": {Data: []byte(p.Hostname + "\n"), Mode: 0600}}
+	files := map[string]File{
+		"root/.not_logged_in_yet": {Data: b.Bytes(), Mode: 0o600},
+		"etc/hostname":            {Data: []byte(p.Hostname + "\n"), Mode: 0o600},
+	}
 	if p.SSHAuthorizedKey != "" {
-		files["home/"+p.UserName+"/.ssh/authorized_keys"] = File{Data: []byte(p.SSHAuthorizedKey + "\n"), Mode: 0600}
+		files["home/"+p.UserName+"/.ssh/authorized_keys"] = File{
+			Data: []byte(p.SSHAuthorizedKey + "\n"),
+			Mode: 0o600,
+		}
 	}
 	return Artifacts{FirstBoot: b.Bytes(), Files: files}, nil
 }
@@ -67,6 +83,7 @@ func Render(profile Compatibility, version string, p Preset) (Artifacts, error) 
 func quote(value string) string {
 	return strings.NewReplacer("\\", "\\\\", "\"", "\\\"", "$", "\\$", "`", "\\`").Replace(value)
 }
+
 func contains(values []string, want string) bool {
 	for _, value := range values {
 		if value == want {
@@ -75,6 +92,7 @@ func contains(values []string, want string) bool {
 	}
 	return false
 }
+
 func versionAtLeast(got, want string) bool {
 	g1, g2, ok := parseVersion(got)
 	if !ok {
@@ -83,6 +101,7 @@ func versionAtLeast(got, want string) bool {
 	w1, w2, ok := parseVersion(want)
 	return ok && (g1 > w1 || g1 == w1 && g2 >= w2)
 }
+
 func parseVersion(s string) (int, int, bool) {
 	parts := strings.Split(s, ".")
 	if len(parts) < 2 {

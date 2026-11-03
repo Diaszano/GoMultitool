@@ -8,7 +8,13 @@ import (
 func TestDeviceValidate(t *testing.T) {
 	for _, kind := range []Kind{KindEMMC, KindSD, KindUSB} {
 		t.Run(string(kind), func(t *testing.T) {
-			d := Device{ID: "device-1", Path: "/dev/test", Kind: kind, SizeBytes: 1 << 30, LogicalSectorSize: 512}
+			d := Device{
+				ID:                "device-1",
+				Path:              "/dev/test",
+				Kind:              kind,
+				SizeBytes:         1 << 30,
+				LogicalSectorSize: 512,
+			}
 			if err := d.Validate(); err != nil {
 				t.Fatalf("valid device rejected: %v", err)
 			}
@@ -17,7 +23,13 @@ func TestDeviceValidate(t *testing.T) {
 }
 
 func TestDeviceValidateRejectsInvalidMetadata(t *testing.T) {
-	valid := Device{ID: "device-1", Path: "/dev/test", Kind: KindEMMC, SizeBytes: 1 << 30, LogicalSectorSize: 512}
+	valid := Device{
+		ID:                "device-1",
+		Path:              "/dev/test",
+		Kind:              KindEMMC,
+		SizeBytes:         1 << 30,
+		LogicalSectorSize: 512,
+	}
 	for _, tc := range []struct {
 		name string
 		edit func(*Device)

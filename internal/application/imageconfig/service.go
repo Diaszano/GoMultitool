@@ -28,7 +28,11 @@ type Service struct {
 }
 
 // Prepare modifies a temporary image copy and atomically renames it on success.
-func (s Service) Prepare(ctx context.Context, sourcePath, outputPath, version string, p Preset) error {
+func (s Service) Prepare(
+	ctx context.Context,
+	sourcePath, outputPath, version string,
+	p Preset,
+) error {
 	if s.Mounter == nil {
 		return errors.New("image mounter is required")
 	}
@@ -123,7 +127,11 @@ func (s Service) Prepare(ctx context.Context, sourcePath, outputPath, version st
 	}
 	if err := cleanup(); err != nil {
 		keepTemp = true
-		return fmt.Errorf("image mount cleanup failed; private temporary image retained at %s: %w", tmpPath, err)
+		return fmt.Errorf(
+			"image mount cleanup failed; private temporary image retained at %s: %w",
+			tmpPath,
+			err,
+		)
 	}
 	if err := ctx.Err(); err != nil {
 		return err
@@ -149,12 +157,13 @@ func (s Service) Prepare(ctx context.Context, sourcePath, outputPath, version st
 
 func writeArtifact(root *os.Root, name string, file File) error {
 	clean := filepath.Clean(name)
-	if filepath.IsAbs(name) || clean == "." || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+	if filepath.IsAbs(name) || clean == "." || clean == ".." ||
+		strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
 		return errors.New("invalid artifact path")
 	}
 	parent := filepath.Dir(clean)
 	if parent != "." {
-		if err := root.MkdirAll(parent, 0700); err != nil {
+		if err := root.MkdirAll(parent, 0o700); err != nil {
 			return err
 		}
 	}

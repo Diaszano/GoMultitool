@@ -12,13 +12,17 @@ func TestInspectBootAssets(t *testing.T) {
 	if len(report.Missing) != 2 || report.KernelPresent || report.ExtlinuxConfigPresent {
 		t.Fatalf("report=%+v", report)
 	}
-	if err := os.MkdirAll(filepath.Join(root, "extlinux"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "extlinux"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "extlinux", "extlinux.conf"), []byte("LABEL test"), 0600); err != nil {
+	if err := os.WriteFile(
+		filepath.Join(root, "extlinux", "extlinux.conf"),
+		[]byte("LABEL test"),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "Image"), []byte("kernel"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "Image"), []byte("kernel"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	report = InspectBootAssets(root)
