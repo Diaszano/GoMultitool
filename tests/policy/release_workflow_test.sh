@@ -9,7 +9,7 @@ ci="$root/.github/workflows/ci.yml"
   exit 1
 }
 grep -q '^  push:' "$workflow"
-grep -q 'branches: \[master\]' "$workflow"
+grep -q 'branches: \[main\]' "$workflow"
 grep -q 'uses: ./\.github/workflows/ci.yml' "$workflow"
 grep -q 'needs: \[ci\]' "$workflow"
 grep -q 'semantic-release --provider git' "$workflow"

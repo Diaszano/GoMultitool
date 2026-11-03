@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 permissions:
   contents: read
@@ -43,7 +43,7 @@ jobs:
       - name: Create semantic version tag
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: semantic-release --provider git --provider-opt default_branch=master
+        run: semantic-release --provider git --provider-opt default_branch=main
       - name: Publish release artifacts
         env:
           GITHUB_TOKEN: ${{ github.token }}

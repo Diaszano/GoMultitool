@@ -2,7 +2,7 @@
 
 ## Software releases
 
-Pull requests must pass the `CI / policy` and `CI / quality` checks. Successful changes merged to `master` are analyzed from Conventional Commit messages. `fix` selects a patch, `feat` a minor, and breaking changes a major after `1.0.0`; before `1.0.0`, breaking changes select a minor. Documentation-only changes do not create a release.
+Pull requests must pass the `policy` and `quality` checks. Successful changes merged to `main` are analyzed from Conventional Commit messages. `fix` selects a patch, `feat` a minor, and breaking changes a major after `1.0.0`; before `1.0.0`, breaking changes select a minor. Documentation-only changes do not create a release.
 
 The release workflow creates the version tag after CI succeeds. GoReleaser packages Linux amd64 and ARMv7 binaries, archives, and SHA-256 checksums. See the [versioning policy](versioning.md) and [contributor guide](../../CONTRIBUTING.md).
 
