@@ -3,8 +3,9 @@ package tui
 import (
 	"testing"
 
-	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/Diaszano/GoMultitool/internal/domain/device"
 )
 
 func TestKeyboardNavigationHardwareEscapeAndQuit(t *testing.T) {
