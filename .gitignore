@@ -3,6 +3,7 @@ sources/multistrap/rootfs/
 /build/
 
 /.tools/
+/.semrel/
 /mnt/
 /mount/
 /secrets/

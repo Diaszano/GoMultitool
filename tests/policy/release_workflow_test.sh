@@ -21,3 +21,4 @@ grep -q '^  workflow_call:' "$ci"
 [[ $(grep -c 'semantic-release --provider git' "$workflow") -eq 1 ]]
 [[ $(grep -c 'goreleaser release --clean' "$workflow") -eq 1 ]]
 grep -q 'replace_existing_artifacts: true' "$root/.goreleaser.yaml"
+grep -qx '/.semrel/' "$root/.gitignore"
