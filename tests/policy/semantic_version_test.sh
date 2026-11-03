@@ -11,7 +11,7 @@ run_case() {
   local message=$1 expected=$2 repo output status=0
   repo=$(mktemp -d)
   cp "$root/.semrelrc" "$repo/.semrelrc"
-  git -C "$repo" init -q -b master
+  git -C "$repo" init -q -b main
   git -C "$repo" config user.name 'Policy Test'
   git -C "$repo" config user.email 'policy@example.invalid'
   printf '%s\n' baseline > "$repo/README.md"
