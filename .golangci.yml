@@ -18,9 +18,7 @@ linters:
 formatters:
   enable:
     - gci
-    - gofmt
     - gofumpt
-    - goimports
     - golines
   settings:
     gci:
@@ -30,6 +28,3 @@ formatters:
         - prefix(github.com/Diaszano/GoMultitool)
     gofumpt:
       module-path: github.com/Diaszano/GoMultitool
-    goimports:
-      local-prefixes:
-        - github.com/Diaszano/GoMultitool
