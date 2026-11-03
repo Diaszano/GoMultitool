@@ -2,6 +2,7 @@ package linux
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -49,7 +50,21 @@ func (c SysfsCatalog) isBootMedia(path string) bool {
 			filepath.Join(devRoot, "disk", strings.ToLower(parts[0]), parts[1]),
 		)
 		if err != nil {
-			return true
+			matches, err := exec.Command(
+				"blkid",
+				"-t",
+				parts[0]+"="+parts[1],
+				"-o",
+				"device",
+			).Output()
+			if err != nil {
+				return true
+			}
+			devices := strings.Fields(string(matches))
+			if len(devices) != 1 {
+				return true
+			}
+			link = devices[0]
 		}
 		return sameDeviceOrPartition(link, path)
 	}
