@@ -82,6 +82,51 @@ func TestSysfsCatalogRejectsMountedPartitionsAndRootMedia(t *testing.T) {
 	}
 }
 
+func TestSysfsCatalogResolvesBootPartitionWhenDevLinksAreMissing(t *testing.T) {
+	root := t.TempDir()
+	sys := filepath.Join(root, "sys")
+	proc := filepath.Join(root, "proc")
+	bin := filepath.Join(root, "bin")
+	if err := os.MkdirAll(proc, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(proc, "mounts"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(proc, "cmdline"),
+		[]byte("root=PARTUUID=recovery-root ro\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	blkid := filepath.Join(bin, "blkid")
+	blkidScript := `#!/bin/sh
+printf '/dev/mmcblk1p3\n'
+`
+	if err := os.WriteFile(blkid, []byte(blkidScript), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin)
+	copyFixtureBlockDevices(t, sys)
+
+	got, err := (SysfsCatalog{SysRoot: sys, ProcRoot: proc, DevRoot: filepath.Join(root, "dev")}).List(
+		context.Background(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range got {
+		want := d.ID == "mmcblk1"
+		if d.BootMedia != want {
+			t.Errorf("%s BootMedia = %v, want %v", d.ID, d.BootMedia, want)
+		}
+	}
+}
+
 func TestSysfsCapacityUses512ByteSectors(t *testing.T) {
 	root := t.TempDir()
 	deviceRoot := filepath.Join(root, "sys/block/sda")
