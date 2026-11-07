@@ -130,3 +130,58 @@ func TestLockSecondCallerGetsBusy(t *testing.T) {
 	}
 	_ = u3()
 }
+
+func TestOpenMatchesMountThroughSymlink(t *testing.T) {
+	base := t.TempDir()
+	dev0 := filepath.Join(base, "dev", "mmcblk0p1")
+	link := filepath.Join(base, "dev", "disk", "by-label", "MULTITOOL")
+	for _, d := range []string{filepath.Dir(dev0), filepath.Dir(link)} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(dev0, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(dev0, link); err != nil {
+		t.Fatal(err)
+	}
+	r := &fakeRunner{blkid: dev0 + "\n"}
+	root := t.TempDir()
+	proc := procWith(t, link+" "+root+" ntfs rw 0 0\n")
+	ws, _, err := Locator{
+		Runner:     r,
+		ProcRoot:   proc,
+		MountPoint: "/unused",
+	}.Open(
+		context.Background(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ws.Root != root || len(r.calls) != 1 {
+		t.Fatalf("root=%q calls=%v", ws.Root, r.calls)
+	}
+}
+
+func TestOpenDecodesMountEscapes(t *testing.T) {
+	r := &fakeRunner{blkid: "/dev/mmcblk0p1\n"}
+	root := filepath.Join(t.TempDir(), "My Disk")
+	if err := os.Mkdir(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	proc := procWith(t, "/dev/mmcblk0p1 "+strings.ReplaceAll(root, " ", `\040`)+" ntfs rw 0 0\n")
+	ws, _, err := Locator{
+		Runner:     r,
+		ProcRoot:   proc,
+		MountPoint: "/unused",
+	}.Open(
+		context.Background(),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ws.Root != root {
+		t.Fatalf("root = %q", ws.Root)
+	}
+}

@@ -82,6 +82,18 @@ func (l Locator) Open(ctx context.Context) (Workspace, func() error, error) {
 	return ws, closeFn, nil
 }
 
+// /proc/mounts escapes space, tab, newline and backslash as octal.
+var mountUnescape = strings.NewReplacer(`\040`, " ", `\011`, "\t", `\012`, "\n", `\134`, `\`)
+
+func sameDevice(a, b string) bool {
+	if a == b {
+		return true
+	}
+	ra, errA := filepath.EvalSymlinks(a)
+	rb, errB := filepath.EvalSymlinks(b)
+	return errA == nil && errB == nil && ra == rb
+}
+
 func mountedAt(procRoot, dev string) string {
 	f, err := os.Open(filepath.Join(procRoot, "mounts"))
 	if err != nil {
@@ -90,8 +102,8 @@ func mountedAt(procRoot, dev string) string {
 	defer func() { _ = f.Close() }()
 	s := bufio.NewScanner(f)
 	for s.Scan() {
-		if fields := strings.Fields(s.Text()); len(fields) >= 2 && fields[0] == dev {
-			return fields[1]
+		if fields := strings.Fields(s.Text()); len(fields) >= 2 && sameDevice(fields[0], dev) {
+			return mountUnescape.Replace(fields[1])
 		}
 	}
 	return ""
