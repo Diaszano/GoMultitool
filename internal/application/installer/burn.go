@@ -34,10 +34,8 @@ func (b Burn) Run(
 	var saved byte
 	var found bool
 	if rk {
+		// Any pre-read failure just skips preservation; the burn itself still validates.
 		_, rate, err := b.findRate(plan.Target.Path)
-		if err != nil && !errors.Is(err, rk322x.ErrNoCommandRate) {
-			return BurnResult{}, err
-		}
 		saved, found = rate, err == nil
 	}
 	if err := (Writer{}).Execute(ctx, plan, source, true, b.Guard, b.OpenTarget); err != nil {
@@ -46,7 +44,7 @@ func (b Burn) Run(
 	if !found {
 		return BurnResult{}, nil
 	}
-	return b.restoreRate(plan.Target.Path, saved)
+	return b.restoreRate(ctx, plan, saved)
 }
 
 // findRate opens the target, scans its head and always closes it.
@@ -64,8 +62,16 @@ func (b Burn) findRate(path string) (offset int64, rate byte, retErr error) {
 	return rk322x.FindCommandRate(head[:n])
 }
 
-func (b Burn) restoreRate(path string, saved byte) (res BurnResult, retErr error) {
-	t, err := b.OpenTarget(path)
+func (b Burn) restoreRate(
+	ctx context.Context,
+	plan installation.Plan,
+	saved byte,
+) (res BurnResult, retErr error) {
+	guardPlan := storageguard.Plan{Device: plan.Target}
+	if err := b.Guard.Revalidate(ctx, guardPlan); err != nil {
+		return BurnResult{}, err
+	}
+	t, err := b.OpenTarget(plan.Target.Path)
 	if err != nil {
 		return BurnResult{}, err
 	}
@@ -74,6 +80,9 @@ func (b Burn) restoreRate(path string, saved byte) (res BurnResult, retErr error
 			retErr = err
 		}
 	}()
+	if err := b.Guard.Revalidate(ctx, guardPlan); err != nil {
+		return BurnResult{}, err
+	}
 	head := make([]byte, rk322x.CommandRateScan)
 	n, err := io.ReadFull(t, head)
 	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) && !errors.Is(err, io.EOF) {

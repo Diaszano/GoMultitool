@@ -115,3 +115,74 @@ func TestBurnRejectsImageLargerThanTarget(t *testing.T) {
 		t.Fatalf("err=%v opens=%d", err, *opens)
 	}
 }
+
+type swapCatalog struct {
+	d       device.Device
+	swapped *bool
+}
+
+func (c swapCatalog) List(context.Context) ([]device.Device, error) {
+	return []device.Device{c.d}, nil
+}
+
+func (c swapCatalog) Resolve(context.Context, string) (device.Device, error) {
+	d := c.d
+	if *c.swapped {
+		d.ID = "other"
+	}
+	return d, nil
+}
+
+type closeHook struct {
+	application.Target
+	onClose func()
+}
+
+func (h closeHook) Close() error { h.onClose(); return h.Target.Close() }
+
+func TestBurnRevalidatesBeforeRestoringRate(t *testing.T) {
+	img := burnImage(8192, 0)
+	b, plan, path, _ := burnSetup(t, burnSize, burnImage(4096, 1), img)
+	b.Platform = "rk322x"
+	swapped := false
+	b.Guard = storageguard.Guard{Catalog: swapCatalog{d: plan.Target, swapped: &swapped}}
+	open, opens := b.OpenTarget, 0
+	b.OpenTarget = func(p string) (application.Target, error) {
+		opens++
+		tg, err := open(p)
+		if opens == 2 { // Execute's open: the device is swapped once it closes
+			return closeHook{tg, func() { swapped = true }}, err
+		}
+		return tg, err
+	}
+	_, err := b.Run(context.Background(), plan, bytes.NewReader(img))
+	if !errors.Is(err, storageguard.ErrDeviceChanged) {
+		t.Fatalf("err=%v", err)
+	}
+	got, _ := os.ReadFile(path)
+	if got[8176] != 0 {
+		t.Fatalf("byte written to swapped device: %d", got[8176])
+	}
+}
+
+func TestBurnSkipsRateWhenPreReadFails(t *testing.T) {
+	img := burnImage(8192, 0)
+	b, plan, path, _ := burnSetup(t, burnSize, burnImage(4096, 1), img)
+	b.Platform = "rk322x"
+	open, opens := b.OpenTarget, 0
+	b.OpenTarget = func(p string) (application.Target, error) {
+		opens++
+		if opens == 1 {
+			return nil, errors.New("open failed")
+		}
+		return open(p)
+	}
+	res, err := b.Run(context.Background(), plan, bytes.NewReader(img))
+	if err != nil || res.CommandRateNotApplied {
+		t.Fatalf("res=%+v err=%v", res, err)
+	}
+	got, _ := os.ReadFile(path)
+	if !bytes.Equal(got, img) {
+		t.Fatal("target differs from image")
+	}
+}
