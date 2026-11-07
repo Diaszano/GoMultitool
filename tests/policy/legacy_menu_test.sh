@@ -33,3 +33,9 @@ got=$(choose_file t t "$dir/*")
   echo "choose_file returned: $got" >&2
   exit 1
 }
+
+# count=1 copies close the pipe early (SIGPIPE upstream), so pipefail would flag valid images.
+if grep -B1 -E 'set -o pipefail; eval' "$script" | grep -q 'count=1'; then
+  echo 'pipefail used around a count=1 copy' >&2
+  exit 1
+fi

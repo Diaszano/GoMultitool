@@ -827,7 +827,7 @@ function do_burn() {
         inform "Restoring partition table and installing custom u-boot loader. This will take a moment..."
         
         OPERATION_CLI="$D_COMMAND_LINE 2>/dev/null | dd of='/dev/$BLK_DEVICE' bs=32k count=1 iflag=fullblock oflag=direct 2>/dev/null"
-        (set -o pipefail; eval "$OPERATION_CLI")
+        (eval "$OPERATION_CLI")
 
         ERR=$?
 
