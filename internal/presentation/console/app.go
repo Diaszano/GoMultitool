@@ -79,9 +79,3 @@ func Run(
 		}
 	}
 }
-
-// Confirm returns true only when the user explicitly enters y.
-func Confirm(input io.Reader) bool {
-	line, err := bufio.NewReader(input).ReadString('\n')
-	return (err == nil || err == io.EOF) && strings.EqualFold(strings.TrimSpace(line), "y")
-}

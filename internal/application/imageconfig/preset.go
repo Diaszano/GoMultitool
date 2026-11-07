@@ -4,7 +4,6 @@ package imageconfig
 import (
 	"encoding/base64"
 	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -62,9 +61,4 @@ func (p Preset) Validate() error {
 		}
 	}
 	return nil
-}
-
-// Redacted describes the preset without exposing passwords or SSH keys.
-func (p Preset) Redacted() string {
-	return fmt.Sprintf("Armbian preset for %s (%s)", p.Hostname, p.UserName)
 }

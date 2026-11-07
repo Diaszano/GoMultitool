@@ -15,9 +15,8 @@ type MemoryPreset struct {
 
 // MemoryArtifact contains the configuration file and an eMMC wear warning.
 type MemoryArtifact struct {
-	Data     []byte
-	Priority int
-	Warning  string
+	Data    []byte
+	Warning string
 }
 
 // RenderMemory emits an idempotent systemd swap unit only when explicitly requested.
@@ -38,8 +37,7 @@ func RenderMemory(p MemoryPreset, zramManagerExists bool) (MemoryArtifact, error
 		warning = "swap writes increase eMMC wear"
 	}
 	return MemoryArtifact{
-		Data:     []byte(fmt.Sprintf("[Swap]\nWhat=/swapfile\nPriority=%d\n", p.Priority)),
-		Priority: p.Priority,
-		Warning:  warning,
+		Data:    []byte(fmt.Sprintf("[Swap]\nWhat=/swapfile\nPriority=%d\n", p.Priority)),
+		Warning: warning,
 	}, nil
 }
