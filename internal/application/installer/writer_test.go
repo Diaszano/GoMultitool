@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/storageguard"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	"github.com/Diaszano/GoMultitool/internal/domain/image"
@@ -54,7 +55,7 @@ func (r *cancelReader) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-type syncErrorTarget struct{ Target }
+type syncErrorTarget struct{ application.Target }
 
 func (syncErrorTarget) Sync() error { return errors.New("sync failed") }
 
@@ -79,10 +80,6 @@ func TestInstallerWritesAndVerifies(t *testing.T) {
 		LogicalSectorSize: 512,
 	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
-	gp, err := g.Plan(context.Background(), d.Path)
-	if err != nil {
-		t.Fatal(err)
-	}
 	plan := installation.Plan{
 		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
 		Target:  d,
@@ -92,10 +89,9 @@ func TestInstallerWritesAndVerifies(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader(data),
-		gp,
 		true,
 		g,
-		func(string) (Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
+		func(string) (application.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -118,7 +114,6 @@ func TestInstallerRejectsUnconfirmedAndShortSource(t *testing.T) {
 		LogicalSectorSize: 512,
 	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
-	gp, _ := g.Plan(context.Background(), d.Path)
 	plan := installation.Plan{
 		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
 		Target:  d,
@@ -128,7 +123,6 @@ func TestInstallerRejectsUnconfirmedAndShortSource(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader(nil),
-		gp,
 		false,
 		g,
 		nil,
@@ -142,10 +136,9 @@ func TestInstallerRejectsUnconfirmedAndShortSource(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader([]byte("short")),
-		gp,
 		true,
 		g,
-		func(string) (Target, error) { return newFileTarget(t), nil },
+		func(string) (application.Target, error) { return newFileTarget(t), nil },
 	)
 	if !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Fatalf("error=%v", err)
@@ -161,7 +154,6 @@ func TestInstallerRejectsDecompressionAndShortWriteErrors(t *testing.T) {
 		LogicalSectorSize: 512,
 	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
-	gp, _ := g.Plan(context.Background(), d.Path)
 	plan := installation.Plan{
 		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
 		Target:  d,
@@ -171,10 +163,9 @@ func TestInstallerRejectsDecompressionAndShortWriteErrors(t *testing.T) {
 		context.Background(),
 		plan,
 		errorReader{},
-		gp,
 		true,
 		g,
-		func(string) (Target, error) { return newFileTarget(t), nil },
+		func(string) (application.Target, error) { return newFileTarget(t), nil },
 	); err == nil {
 		t.Fatal("decompression error ignored")
 	}
@@ -182,10 +173,9 @@ func TestInstallerRejectsDecompressionAndShortWriteErrors(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader(bytes.Repeat([]byte("x"), 512)),
-		gp,
 		true,
 		g,
-		func(string) (Target, error) { return shortTarget{}, nil },
+		func(string) (application.Target, error) { return shortTarget{}, nil },
 	)
 	if !errors.Is(err, io.ErrShortWrite) {
 		t.Fatalf("error=%v", err)
@@ -201,7 +191,6 @@ func TestInstallerRejectsCancellationAndSyncFailure(t *testing.T) {
 		LogicalSectorSize: 512,
 	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
-	gp, _ := g.Plan(context.Background(), d.Path)
 	plan := installation.Plan{
 		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
 		Target:  d,
@@ -212,10 +201,9 @@ func TestInstallerRejectsCancellationAndSyncFailure(t *testing.T) {
 		ctx,
 		plan,
 		&cancelReader{cancel: cancel},
-		gp,
 		true,
 		g,
-		func(string) (Target, error) { return newFileTarget(t), nil },
+		func(string) (application.Target, error) { return newFileTarget(t), nil },
 	)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("error=%v", err)
@@ -224,21 +212,49 @@ func TestInstallerRejectsCancellationAndSyncFailure(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader(bytes.Repeat([]byte("x"), 512)),
-		gp,
 		true,
 		g,
-		func(string) (Target, error) { return syncErrorTarget{Target: newFileTarget(t)}, nil },
+		func(string) (application.Target, error) { return syncErrorTarget{Target: newFileTarget(t)}, nil },
 	)
 	if err == nil || err.Error() != "sync failed" {
 		t.Fatalf("error=%v", err)
 	}
 }
 
-func newFileTarget(t *testing.T) Target {
+func newFileTarget(t *testing.T) application.Target {
 	t.Helper()
 	f, err := os.CreateTemp(t.TempDir(), "target")
 	if err != nil {
 		t.Fatal(err)
 	}
 	return f
+}
+
+func TestInstallerRejectsChangedDeviceBeforeOpening(t *testing.T) {
+	d := device.Device{
+		ID:                "usb",
+		Path:              "/dev/sdb",
+		Kind:              device.KindUSB,
+		SizeBytes:         512,
+		LogicalSectorSize: 512,
+	}
+	changed := d
+	changed.ID = "replacement"
+	plan := installation.Plan{
+		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
+		Target:  d,
+		Summary: "write",
+	}
+	opened := false
+	err := (Writer{}).Execute(
+		context.Background(),
+		plan,
+		bytes.NewReader(make([]byte, 512)),
+		true,
+		storageguard.Guard{Catalog: writerCatalog{changed}},
+		func(string) (application.Target, error) { opened = true; return nil, nil },
+	)
+	if !errors.Is(err, storageguard.ErrDeviceChanged) || opened {
+		t.Fatalf("err=%v opened=%v", err, opened)
+	}
 }

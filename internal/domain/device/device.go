@@ -11,8 +11,6 @@ const (
 	KindSD Kind = "sd"
 	// KindUSB identifies USB storage.
 	KindUSB Kind = "usb"
-	// KindNAND identifies raw NAND storage.
-	KindNAND Kind = "nand"
 	// KindUnknown identifies storage that could not be classified.
 	KindUnknown Kind = "unknown"
 )
@@ -37,7 +35,7 @@ func (d Device) Validate() error {
 		return ErrInvalidDevice
 	}
 	switch d.Kind {
-	case KindEMMC, KindSD, KindUSB, KindNAND:
+	case KindEMMC, KindSD, KindUSB:
 		return nil
 	default:
 		return ErrInvalidDevice

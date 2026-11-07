@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/storageguard"
 	"github.com/Diaszano/GoMultitool/internal/domain/backup"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
@@ -20,13 +21,6 @@ var (
 	ErrChecksumMismatch = errors.New("backup checksum mismatch")
 )
 
-// Target supports synchronized writes and readback verification.
-type Target interface {
-	io.ReadWriteSeeker
-	Sync() error
-	Close() error
-}
-
 // Service restores verified backup data to a guarded device.
 type Service struct{}
 
@@ -38,7 +32,7 @@ func (Service) Execute(
 	plan storageguard.Plan,
 	confirmed bool,
 	guard storageguard.Guard,
-	openTarget func(string) (Target, error),
+	openTarget func(string) (application.Target, error),
 ) (retErr error) {
 	if err := manifest.Validate(); err != nil {
 		return err
@@ -86,7 +80,7 @@ func (Service) Execute(
 	if _, err := target.Seek(0, io.SeekStart); err != nil {
 		return err
 	}
-	if _, err := copyExact(ctx, target, source, manifest.SizeBytes); err != nil {
+	if err := application.CopyExact(ctx, target, source, manifest.SizeBytes); err != nil {
 		return err
 	}
 	if err := target.Sync(); err != nil {
@@ -105,38 +99,9 @@ func (Service) Execute(
 	return nil
 }
 
-func copyExact(ctx context.Context, dst io.Writer, src io.Reader, size int64) (int64, error) {
-	buf := make([]byte, 32*1024)
-	remaining := size
-	for remaining > 0 {
-		if err := ctx.Err(); err != nil {
-			return size - remaining, err
-		}
-		want := int64(len(buf))
-		if remaining < want {
-			want = remaining
-		}
-		n, err := io.ReadFull(src, buf[:want])
-		if n > 0 {
-			written, writeErr := dst.Write(buf[:n])
-			if writeErr != nil {
-				return size - remaining, writeErr
-			}
-			if written != n {
-				return size - remaining, io.ErrShortWrite
-			}
-			remaining -= int64(n)
-		}
-		if err != nil {
-			return size - remaining, err
-		}
-	}
-	return size, nil
-}
-
 func hashExact(ctx context.Context, src io.Reader, size int64) ([]byte, error) {
 	h := sha256.New()
-	if _, err := copyExact(ctx, h, src, size); err != nil {
+	if err := application.CopyExact(ctx, h, src, size); err != nil {
 		return nil, err
 	}
 	return h.Sum(nil), nil

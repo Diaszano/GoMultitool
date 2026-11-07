@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/restore"
 	"github.com/Diaszano/GoMultitool/internal/application/storageguard"
 	"github.com/Diaszano/GoMultitool/internal/domain/backup"
@@ -78,7 +79,7 @@ func TestRestoreTemporaryFileReadback(t *testing.T) {
 		plan,
 		true,
 		guard,
-		func(string) (restore.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
+		func(string) (application.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
 	)
 	if err != nil {
 		t.Fatal(err)

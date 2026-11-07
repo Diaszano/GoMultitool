@@ -51,3 +51,19 @@ func TestBootReportMatchingRootUUID(t *testing.T) {
 		t.Fatalf("hypotheses=%v", r.Hypotheses)
 	}
 }
+
+func TestCollectBootReportCopiesBootAssetFlags(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "boot/extlinux"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"boot/zImage", "boot/extlinux/extlinux.conf"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte("x"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	r := CollectBootReport(root, "")
+	if !r.KernelPresent || !r.ExtlinuxConfigPresent {
+		t.Fatalf("boot asset flags not copied: %+v", r)
+	}
+}

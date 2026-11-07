@@ -200,3 +200,73 @@ func TestSysfsCatalogResolveRejectsMissingDevice(t *testing.T) {
 		t.Fatal("Resolve() succeeded for missing device")
 	}
 }
+
+func busyFixture(t *testing.T, swaps string) (SysfsCatalog, string) {
+	t.Helper()
+	root := t.TempDir()
+	sys, proc := filepath.Join(root, "sys"), filepath.Join(root, "proc")
+	if err := os.MkdirAll(proc, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	files := map[string]string{"mounts": "", "cmdline": "root=/dev/sda1\n"}
+	if swaps != "" {
+		files["swaps"] = "Filename Type Size Used Priority\n" + swaps
+	}
+	for name, data := range files {
+		if err := os.WriteFile(filepath.Join(proc, name), []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	copyFixtureBlockDevices(t, sys)
+	return SysfsCatalog{SysRoot: sys, ProcRoot: proc}, sys
+}
+
+func mountedByID(t *testing.T, c SysfsCatalog) map[string]bool {
+	t.Helper()
+	got, err := c.List(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	mounted := map[string]bool{}
+	for _, d := range got {
+		mounted[d.ID] = d.Mounted
+	}
+	return mounted
+}
+
+func TestSysfsCatalogMarksActiveSwapPartitionBusy(t *testing.T) {
+	c, _ := busyFixture(t, "/dev/mmcblk1p3 partition 524284 0 -2\n")
+	mounted := mountedByID(t, c)
+	if !mounted["mmcblk1"] || mounted["mmcblk0"] {
+		t.Fatalf("mounted = %v", mounted)
+	}
+}
+
+func TestSysfsCatalogIgnoresSwapFiles(t *testing.T) {
+	c, _ := busyFixture(t, "/swapfile file 1048572 0 -2\n")
+	for id, busy := range mountedByID(t, c) {
+		if busy {
+			t.Errorf("%s marked busy by a swap file", id)
+		}
+	}
+}
+
+func TestSysfsCatalogToleratesMissingSwaps(t *testing.T) {
+	c, _ := busyFixture(t, "")
+	if mountedByID(t, c)["mmcblk0"] {
+		t.Fatal("missing /proc/swaps marked mmcblk0 busy")
+	}
+}
+
+func TestSysfsCatalogMarksHeldPartitionBusy(t *testing.T) {
+	c, sys := busyFixture(t, "")
+	if err := os.MkdirAll(
+		filepath.Join(sys, "block/mmcblk0/mmcblk0p1/holders/dm-0"),
+		0o755,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if !mountedByID(t, c)["mmcblk0"] {
+		t.Fatal("partition with holders not marked busy")
+	}
+}
