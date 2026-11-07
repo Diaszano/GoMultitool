@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/installer"
 	"github.com/Diaszano/GoMultitool/internal/application/storageguard"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
@@ -63,7 +64,7 @@ func TestInstallTemporaryFileReadback(t *testing.T) {
 		gp,
 		true,
 		g,
-		func(string) (installer.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
+		func(string) (application.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
 	)
 	if err != nil {
 		t.Fatal(err)
