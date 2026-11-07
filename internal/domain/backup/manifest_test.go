@@ -45,7 +45,7 @@ func TestManifestRejectsIncompleteAndInvalidChecksums(t *testing.T) {
 	}{
 		{"missing identity", func(m *Manifest) { m.SourceID = "" }},
 		{"bad checksum", func(m *Manifest) { m.SHA256 = "bad" }},
-		{"incomplete", func(m *Manifest) { m.Status = StatusPending }},
+		{"incomplete", func(m *Manifest) { m.Status = Status("pending") }},
 		{"zero size", func(m *Manifest) { m.SizeBytes = 0 }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

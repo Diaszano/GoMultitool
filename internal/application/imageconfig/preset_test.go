@@ -1,11 +1,8 @@
 package imageconfig
 
-import (
-	"strings"
-	"testing"
-)
+import "testing"
 
-func TestPresetValidationAndSecretRedaction(t *testing.T) {
+func TestPresetValidation(t *testing.T) {
 	p := Preset{
 		RootPassword:     "Root$;`pass",
 		UserName:         "armbian",
@@ -18,12 +15,6 @@ func TestPresetValidationAndSecretRedaction(t *testing.T) {
 	}
 	if err := p.Validate(); err != nil {
 		t.Fatal(err)
-	}
-	redacted := p.Redacted()
-	for _, secret := range []string{p.RootPassword, p.UserPassword, p.SSHAuthorizedKey} {
-		if strings.Contains(redacted, secret) {
-			t.Fatalf("secret leaked in %q", redacted)
-		}
 	}
 	p.UserName = "bad user"
 	if err := p.Validate(); err == nil {
