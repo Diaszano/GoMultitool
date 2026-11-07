@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
@@ -35,6 +37,7 @@ func TestHardwareJSON(t *testing.T) {
 	}
 	if code := run(
 		[]string{"hardware", "--json"},
+		"/",
 		catalog,
 		i18n.For(i18n.LocalePtBR),
 		&out,
@@ -55,6 +58,7 @@ func TestHardwareJSONErrorIsStructured(t *testing.T) {
 	var out, stderr bytes.Buffer
 	if code := run(
 		[]string{"hardware", "--json"},
+		"/",
 		testCatalog{err: errors.New("sysfs unavailable")},
 		i18n.For(i18n.LocalePtBR),
 		&out,
@@ -75,7 +79,7 @@ func TestVersionAndUsageUseCatalog(t *testing.T) {
 	for _, locale := range []i18n.Locale{i18n.LocalePtBR, i18n.LocaleEN} {
 		catalog := i18n.For(locale)
 		var out, stderr bytes.Buffer
-		if code := run([]string{"version"}, testCatalog{}, catalog, &out, &stderr); code != 0 {
+		if code := run([]string{"version"}, "/", testCatalog{}, catalog, &out, &stderr); code != 0 {
 			t.Fatalf("version exit = %d: %s", code, stderr.String())
 		}
 		if !bytes.Contains(out.Bytes(), []byte(catalog.VersionLabel)) ||
@@ -84,7 +88,7 @@ func TestVersionAndUsageUseCatalog(t *testing.T) {
 			t.Errorf("locale %q version output = %q", locale, out.String())
 		}
 		out.Reset()
-		if code := run(nil, testCatalog{}, catalog, &out, &stderr); code != 2 ||
+		if code := run(nil, "/", testCatalog{}, catalog, &out, &stderr); code != 2 ||
 			!bytes.Contains(stderr.Bytes(), []byte(catalog.Usage)) {
 			t.Errorf("locale %q usage exit/output = %d/%q", locale, code, stderr.String())
 		}
@@ -97,6 +101,7 @@ func TestJSONOutputDoesNotDependOnLocale(t *testing.T) {
 		var out, stderr bytes.Buffer
 		if code := run(
 			[]string{"hardware", "--json"},
+			"/",
 			testCatalog{devices: []device.Device{{ID: "mmc0"}}},
 			i18n.For(locale),
 			&out,
@@ -117,6 +122,7 @@ func TestJSONErrorDoesNotDependOnLocale(t *testing.T) {
 		var out, stderr bytes.Buffer
 		code := run(
 			[]string{"hardware", "--json"},
+			"/",
 			testCatalog{err: errors.New("sysfs unavailable")},
 			i18n.For(locale),
 			&out,
@@ -142,6 +148,7 @@ func TestJSONEncodeWriteErrorKeepsStableContext(t *testing.T) {
 		var stderr bytes.Buffer
 		code := run(
 			[]string{"hardware", "--json"},
+			"/",
 			testCatalog{devices: []device.Device{{ID: "mmc0"}}},
 			i18n.For(locale),
 			failedWriter{},
@@ -170,5 +177,41 @@ func TestJSONEncodeErrorContextsRemainStable(t *testing.T) {
 		); code != 1 || stderr.String() != test.want {
 			t.Errorf("context %q exit/stderr = %d/%q", test.context, code, stderr.String())
 		}
+	}
+}
+
+func TestDiagnoseJSON(t *testing.T) {
+	root := t.TempDir()
+	for _, dir := range []string{"proc", "boot", "var/log"} {
+		if err := os.MkdirAll(filepath.Join(root, dir), 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	files := map[string]os.FileMode{"proc/cmdline": 0o600, "boot/zImage": 0o600, "var/log/syslog": 0o000}
+	for name, mode := range files {
+		if err := os.WriteFile(filepath.Join(root, name), []byte("root=/dev/mmcblk0p2\n"), mode); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var out, stderr bytes.Buffer
+	code := run([]string{"diagnose", "--json"}, root, testCatalog{}, i18n.For(i18n.LocalePtBR), &out, &stderr)
+	if code != 0 {
+		t.Fatalf("code=%d stderr=%s", code, stderr.String())
+	}
+	var got map[string]json.RawMessage
+	if err := json.Unmarshal(out.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := got["journal_available"]; ok || got["boot"] == nil || got["network"] == nil {
+		t.Fatalf("unexpected report keys: %s", out.String())
+	}
+	var boot struct {
+		KernelPresent bool `json:"kernel_present"`
+	}
+	if err := json.Unmarshal(got["boot"], &boot); err != nil {
+		t.Fatal(err)
+	}
+	if !boot.KernelPresent {
+		t.Fatalf("kernel not reported: %s", got["boot"])
 	}
 }
