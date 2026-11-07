@@ -13,8 +13,8 @@ import (
 	"github.com/Diaszano/GoMultitool/internal/application/diagnostics"
 	"github.com/Diaszano/GoMultitool/internal/application/discovery"
 	"github.com/Diaszano/GoMultitool/internal/buildinfo"
-	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	linuxsys "github.com/Diaszano/GoMultitool/internal/infrastructure/linux"
+	"github.com/Diaszano/GoMultitool/internal/infrastructure/multitool"
 	"github.com/Diaszano/GoMultitool/internal/presentation/console"
 	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 	"github.com/Diaszano/GoMultitool/internal/presentation/tui"
@@ -23,13 +23,7 @@ import (
 func main() {
 	devices := linuxsys.SysfsCatalog{SysRoot: "/sys", ProcRoot: "/proc"}
 	messages := i18n.For(i18n.DetectLocale(os.Getenv))
-	startTUI := func() error {
-		service := discovery.Service{Catalog: devices}
-		return tui.New(
-			func() ([]device.Device, error) { return service.Inventory(context.Background()) },
-			messages,
-		).Run()
-	}
+	startTUI := func() error { return tui.New(services(devices, multitool.Locator{}), messages).Run() }
 	os.Exit(run(os.Args[1:], "/", devices, messages, os.Stdin, os.Stdout, os.Stderr, startTUI))
 }
 

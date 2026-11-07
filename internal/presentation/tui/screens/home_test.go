@@ -25,7 +25,7 @@ func TestHomeRendersLocalizedMenu(t *testing.T) {
 	}
 }
 
-func TestHomeOnlyActivatesHardwareAndExitOnEnter(t *testing.T) {
+func TestHomeActivatesEveryItemOnEnter(t *testing.T) {
 	var selected []i18n.MenuItemID
 	list := Home(i18n.For(i18n.LocaleEN), func(id i18n.MenuItemID) {
 		selected = append(selected, id)
@@ -34,20 +34,18 @@ func TestHomeOnlyActivatesHardwareAndExitOnEnter(t *testing.T) {
 	if handle == nil {
 		t.Fatal("list input handler is nil")
 	}
-	for i, item := range i18n.For(i18n.LocaleEN).Menu {
+	menu := i18n.For(i18n.LocaleEN).Menu
+	for i := range menu {
 		list.SetCurrentItem(i)
-		callback := list.GetItemSelectedFunc(i)
-		if item.ID == i18n.MenuHardware || item.ID == i18n.MenuExit {
-			if callback == nil {
-				t.Errorf("actionable item %q has no callback", item.ID)
-			}
-		} else if callback != nil {
-			t.Errorf("future item %q has a callback", item.ID)
-		}
 		handle(tcell.NewEventKey(tcell.KeyEnter, 0, tcell.ModNone), func(tview.Primitive) {})
 	}
-	if len(selected) != 2 || selected[0] != i18n.MenuHardware || selected[1] != i18n.MenuExit {
-		t.Fatalf("Enter selected %v, want hardware and exit only", selected)
+	if len(selected) != len(menu) {
+		t.Fatalf("Enter selected %v, want every menu item", selected)
+	}
+	for i, item := range menu {
+		if selected[i] != item.ID {
+			t.Errorf("selection %d = %q, want %q", i, selected[i], item.ID)
+		}
 	}
 }
 

@@ -21,24 +21,14 @@ const (
 type MenuItemID string
 
 const (
+	// MenuBurn identifies the image burn entry.
+	MenuBurn MenuItemID = "burn"
+	// MenuBackup identifies the backup entry.
+	MenuBackup MenuItemID = "backup"
 	// MenuHardware identifies the hardware information entry.
 	MenuHardware MenuItemID = "hardware"
-	// MenuStorage identifies the future storage entry.
-	MenuStorage MenuItemID = "storage"
-	// MenuBackup identifies the future backup entry.
-	MenuBackup MenuItemID = "backup"
-	// MenuRestore identifies the future restore entry.
-	MenuRestore MenuItemID = "restore"
-	// MenuInstall identifies the future install entry.
-	MenuInstall MenuItemID = "install"
-	// MenuConfigureImage identifies the future image configuration entry.
-	MenuConfigureImage MenuItemID = "configure-image"
-	// MenuDiagnostics identifies the future diagnostics entry.
-	MenuDiagnostics MenuItemID = "diagnostics"
-	// MenuSystemSettings identifies the future system settings entry.
-	MenuSystemSettings MenuItemID = "system-settings"
-	// MenuTerminal identifies the future terminal entry.
-	MenuTerminal MenuItemID = "terminal"
+	// MenuLegacy identifies the legacy Bash menu entry.
+	MenuLegacy MenuItemID = "legacy"
 	// MenuExit identifies the exit entry.
 	MenuExit MenuItemID = "exit"
 )
@@ -53,11 +43,13 @@ type MenuItem struct {
 // Catalog groups all application-authored text shown to a person.
 type Catalog struct {
 	ProductName      string
-	Menu             [10]MenuItem
+	Menu             [5]MenuItem
 	Navigation       string
 	HardwareTitle    string
 	EmptyInventory   string
 	ErrorPrefix      string
+	Loading          string
+	Busy             string
 	InUseLabel       string
 	BootMediaLabel   string
 	DecimalSeparator string
@@ -91,22 +83,19 @@ func For(locale Locale) Catalog {
 	if locale == LocaleEN {
 		return Catalog{
 			ProductName: "GoMultitool",
-			Menu: [10]MenuItem{
+			Menu: [5]MenuItem{
+				{MenuBurn, "Burn image to eMMC", "Install Armbian or another image"},
+				{MenuBackup, "Back up", "Save the eMMC to the MULTITOOL partition"},
 				{MenuHardware, "Hardware information", "Inspect connected storage devices"},
-				{MenuStorage, "Storage", "Coming soon"},
-				{MenuBackup, "Backup", "Coming soon"},
-				{MenuRestore, "Restore", "Coming soon"},
-				{MenuInstall, "Install Linux", "Coming soon"},
-				{MenuConfigureImage, "Configure image", "Coming soon"},
-				{MenuDiagnostics, "Diagnostics", "Coming soon"},
-				{MenuSystemSettings, "System settings", "Coming soon"},
-				{MenuTerminal, "Terminal", "Coming soon"},
+				{MenuLegacy, "Legacy menu (Bash)", "Restore, erase, steP-nand"},
 				{MenuExit, "Exit", "Leave GoMultitool"},
 			},
 			Navigation:       "↑/↓ Move • Enter Select • Esc Back • q Quit",
 			HardwareTitle:    "Storage devices",
 			EmptyInventory:   "No devices found.",
 			ErrorPrefix:      "Error: ",
+			Loading:          "Loading…",
+			Busy:             "Another operation is running.",
 			InUseLabel:       "in use",
 			BootMediaLabel:   "boot media",
 			DecimalSeparator: ".",
@@ -120,26 +109,23 @@ func For(locale Locale) Catalog {
 	}
 	return Catalog{
 		ProductName: "GoMultitool",
-		Menu: [10]MenuItem{
+		Menu: [5]MenuItem{
+			{MenuBurn, "Gravar imagem no eMMC", "Instalar Armbian ou outra imagem"},
+			{MenuBackup, "Fazer backup", "Salvar o eMMC na partição MULTITOOL"},
 			{
 				MenuHardware,
 				"Informações de hardware",
 				"Ver dispositivos de armazenamento conectados",
 			},
-			{MenuStorage, "Armazenamento", "Em breve"},
-			{MenuBackup, "Backup", "Em breve"},
-			{MenuRestore, "Restaurar", "Em breve"},
-			{MenuInstall, "Instalar Linux", "Em breve"},
-			{MenuConfigureImage, "Configurar imagem", "Em breve"},
-			{MenuDiagnostics, "Diagnósticos", "Em breve"},
-			{MenuSystemSettings, "Configurações do sistema", "Em breve"},
-			{MenuTerminal, "Terminal", "Em breve"},
+			{MenuLegacy, "Menu antigo (Bash)", "Restaurar, apagar, steP-nand"},
 			{MenuExit, "Sair", "Fechar o GoMultitool"},
 		},
 		Navigation:       "↑/↓ navegar • Enter selecionar • Esc voltar • q sair",
 		HardwareTitle:    "Dispositivos de armazenamento",
 		EmptyInventory:   "Nenhum dispositivo encontrado.",
 		ErrorPrefix:      "Erro: ",
+		Loading:          "Carregando…",
+		Busy:             "Outra operação em andamento.",
 		InUseLabel:       "em uso",
 		BootMediaLabel:   "mídia de boot",
 		DecimalSeparator: ",",

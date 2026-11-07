@@ -64,24 +64,19 @@ func TestDetectLocaleUsesFirstSupportedEnvironmentValue(t *testing.T) {
 }
 
 func TestCatalogContainsMenuInBothLocales(t *testing.T) {
+	want := [5]MenuItemID{MenuBurn, MenuBackup, MenuHardware, MenuLegacy, MenuExit}
 	for _, locale := range []Locale{LocalePtBR, LocaleEN} {
 		catalog := For(locale)
 		if catalog.ProductName != "GoMultitool" {
 			t.Errorf("locale %q product name = %q", locale, catalog.ProductName)
 		}
-		if len(catalog.Menu) != 10 {
-			t.Errorf("locale %q menu entries = %d, want 10", locale, len(catalog.Menu))
-		}
-		if catalog.Menu[0].ID != MenuHardware || catalog.Menu[0].Label == "" {
-			t.Errorf("locale %q hardware menu item = %+v", locale, catalog.Menu[0])
-		}
-		if catalog.Menu[9].ID != MenuExit || catalog.Menu[9].Label == "" {
-			t.Errorf("locale %q exit menu item = %+v", locale, catalog.Menu[9])
-		}
-		for _, item := range catalog.Menu[1:9] {
-			if item.ID == "" || item.Label == "" || item.Hint == "" {
-				t.Errorf("locale %q has incomplete future menu item: %+v", locale, item)
+		for i, item := range catalog.Menu {
+			if item.ID != want[i] || item.Label == "" || item.Hint == "" {
+				t.Errorf("locale %q menu item %d = %+v, want ID %q", locale, i, item, want[i])
 			}
+		}
+		if catalog.Loading == "" || catalog.Busy == "" {
+			t.Errorf("locale %q is missing loading or busy text", locale)
 		}
 	}
 }
