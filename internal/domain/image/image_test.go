@@ -25,3 +25,12 @@ func TestValidateSize(t *testing.T) {
 		t.Fatalf("error = %v", err)
 	}
 }
+
+func TestFormatFromPathGzip(t *testing.T) {
+	if got, err := FormatFromPath("A.IMG.GZ"); err != nil || got != FormatGzip {
+		t.Fatalf("FormatFromPath = %q, %v", got, err)
+	}
+	if _, err := FormatFromPath("a.gz"); !errors.Is(err, ErrUnsupportedFormat) {
+		t.Fatalf("error = %v", err)
+	}
+}

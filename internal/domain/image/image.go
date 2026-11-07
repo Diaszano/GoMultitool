@@ -15,6 +15,8 @@ const (
 	FormatRaw Format = "raw"
 	// FormatXZ is an XZ-compressed disk image.
 	FormatXZ Format = "xz"
+	// FormatGzip is a gzip-compressed disk image.
+	FormatGzip Format = "gz"
 )
 
 // ErrUnsupportedFormat indicates the path does not identify a supported image.
@@ -30,15 +32,16 @@ type Image struct {
 	SizeBytes int64
 }
 
-// FormatFromPath identifies raw .img and compressed .img.xz images.
+// FormatFromPath identifies raw .img, .img.xz and .img.gz images.
 func FormatFromPath(path string) (Format, error) {
-	switch strings.ToLower(filepath.Ext(path)) {
-	case ".img":
+	lower := strings.ToLower(path)
+	switch {
+	case strings.HasSuffix(lower, ".img.xz"):
+		return FormatXZ, nil
+	case strings.HasSuffix(lower, ".img.gz"):
+		return FormatGzip, nil
+	case strings.ToLower(filepath.Ext(path)) == ".img":
 		return FormatRaw, nil
-	case ".xz":
-		if strings.HasSuffix(strings.ToLower(path), ".img.xz") {
-			return FormatXZ, nil
-		}
 	}
 	return "", ErrUnsupportedFormat
 }

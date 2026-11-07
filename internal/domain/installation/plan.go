@@ -24,7 +24,8 @@ type Plan struct {
 // Validate rejects unsupported images and unsafe or undersized destinations.
 func (p Plan) Validate() error {
 	if p.Image.Path == "" || p.Image.SizeBytes <= 0 ||
-		(p.Image.Format != image.FormatRaw && p.Image.Format != image.FormatXZ) ||
+		(p.Image.Format != image.FormatRaw && p.Image.Format != image.FormatXZ &&
+			p.Image.Format != image.FormatGzip) ||
 		p.Summary == "" {
 		return ErrInvalidPlan
 	}

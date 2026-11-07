@@ -1,7 +1,8 @@
-// Package compression opens raw and XZ-compressed disk images as streams.
+// Package compression opens raw, XZ and gzip disk images as streams.
 package compression
 
 import (
+	"compress/gzip"
 	"context"
 	"fmt"
 	"io"
@@ -25,6 +26,9 @@ func Open(ctx context.Context, path string) (io.ReadCloser, error) {
 	}
 	if format == image.FormatRaw {
 		return os.Open(path)
+	}
+	if format == image.FormatGzip {
+		return openGzip(path)
 	}
 	cmd := exec.CommandContext(ctx, "xz", "-dc", "--", path)
 	stdout, err := cmd.StdoutPipe()
@@ -70,4 +74,30 @@ func (r *commandReader) Close() error {
 		return fmt.Errorf("decompress image: %w", err)
 	}
 	return nil
+}
+
+type gzipReader struct {
+	*gzip.Reader
+	file *os.File
+}
+
+func openGzip(path string) (io.ReadCloser, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	zr, err := gzip.NewReader(f)
+	if err != nil {
+		_ = f.Close()
+		return nil, err
+	}
+	return &gzipReader{Reader: zr, file: f}, nil
+}
+
+func (r *gzipReader) Close() error {
+	zerr := r.Reader.Close()
+	if err := r.file.Close(); err != nil {
+		return err
+	}
+	return zerr
 }
