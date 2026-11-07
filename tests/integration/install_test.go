@@ -48,10 +48,6 @@ func TestInstallTemporaryFileReadback(t *testing.T) {
 		LogicalSectorSize: 512,
 	}
 	g := storageguard.Guard{Catalog: installCatalog{d}}
-	gp, err := g.Plan(context.Background(), d.Path)
-	if err != nil {
-		t.Fatal(err)
-	}
 	plan := installation.Plan{
 		Image:   image.Image{Path: "fixture.img", Format: image.FormatRaw, SizeBytes: 512},
 		Target:  d,
@@ -61,7 +57,6 @@ func TestInstallTemporaryFileReadback(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader(data),
-		gp,
 		true,
 		g,
 		func(string) (application.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
