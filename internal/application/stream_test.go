@@ -35,3 +35,14 @@ func TestCopyExactStopsOnCancel(t *testing.T) {
 		t.Fatalf("err=%v dst=%q", err, dst.String())
 	}
 }
+
+type eofWriter struct{}
+
+func (eofWriter) Write([]byte) (int, error) { return 0, io.EOF }
+
+func TestCopyExactKeepsWriterEOF(t *testing.T) {
+	err := CopyExact(context.Background(), eofWriter{}, strings.NewReader("data"), 4)
+	if !errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("error = %v", err)
+	}
+}
