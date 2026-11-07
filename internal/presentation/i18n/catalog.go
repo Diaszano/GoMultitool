@@ -60,6 +60,13 @@ type Catalog struct {
 	CommitLabel      string
 	BuildLabel       string
 	Usage            string
+	Burn             BurnTexts
+}
+
+// BurnTexts are the strings of the image burn screen.
+type BurnTexts struct {
+	Destination, Images, SizeAtBurn, Warning, Start, Cancel string
+	Success, CommandRate, NoImages, NoDestination           string
 }
 
 // DetectLocale selects the first supported locale from the standard environment order.
@@ -107,6 +114,18 @@ func For(locale Locale) Catalog {
 			CommitLabel:      "Commit",
 			BuildLabel:       "Build",
 			Usage:            "Usage: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
+			Burn: BurnTexts{
+				Destination:   "Destination",
+				Images:        "Image",
+				SizeAtBurn:    "size computed when burning",
+				Warning:       "Everything on %s will be erased.",
+				Start:         "Burn",
+				Cancel:        "Cancel",
+				Success:       "Burned and verified. You can power off.",
+				CommandRate:   "The image has no DDR command rate; the previous value was not applied.",
+				NoImages:      "No images in MULTITOOL/images.",
+				NoDestination: "No available destination.",
+			},
 		}
 	}
 	return Catalog{
@@ -138,6 +157,18 @@ func For(locale Locale) Catalog {
 		CommitLabel:      "Commit",
 		BuildLabel:       "Compilação",
 		Usage:            "Uso: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
+		Burn: BurnTexts{
+			Destination:   "Destino",
+			Images:        "Imagem",
+			SizeAtBurn:    "tamanho calculado ao gravar",
+			Warning:       "Tudo em %s será apagado.",
+			Start:         "Gravar",
+			Cancel:        "Cancelar",
+			Success:       "Gravado e conferido. Pode desligar.",
+			CommandRate:   "A imagem não tem o command rate da DDR; o valor anterior não foi aplicado.",
+			NoImages:      "Nenhuma imagem em MULTITOOL/images.",
+			NoDestination: "Nenhum destino disponível.",
+		},
 	}
 }
 

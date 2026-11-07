@@ -144,8 +144,8 @@ func TestTUIKeyboardNavigationBackAndQuit(t *testing.T) {
 	waitForDone(t, simulation)
 }
 
-func TestBurnAndBackupOpenPlaceholdersAndEscReturns(t *testing.T) {
-	for _, index := range []int{0, 1} {
+func TestBackupOpensPlaceholderAndEscReturns(t *testing.T) {
+	for _, index := range []int{1} {
 		catalog := i18n.For(i18n.LocaleEN)
 		app, list, _ := newApp(Services{}, catalog)
 		simulation := startSimulation(t, app)

@@ -43,6 +43,7 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 	app := tview.NewApplication()
 	onHome := true
 	var list *tview.List
+	var burn *burnScreen
 	show := func(p tview.Primitive) {
 		onHome = false
 		app.SetRoot(withNavigation(p, catalog), true)
@@ -56,8 +57,12 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 
 	list = screens.Home(catalog, func(id i18n.MenuItemID) {
 		switch id {
-		case i18n.MenuBurn, i18n.MenuBackup:
-			// Placeholder until the burn and backup screens replace it.
+		case i18n.MenuBurn:
+			burn = newBurnScreen(app, s, catalog, goHome)
+			show(burn.root)
+			burn.load()
+		case i18n.MenuBackup:
+			// Placeholder until the backup screen replaces it.
 			label, _ := list.GetItemText(list.GetCurrentItem())
 			placeholder := tview.NewTextView()
 			placeholder.SetBorder(true).SetTitle(label)
@@ -88,6 +93,12 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 	list.SetTitle(catalog.ProductName).SetBorder(true)
 	goHome()
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if burn != nil && !onHome && burn.burning.Load() {
+			// Never leave or quit mid-burn.
+			if event.Key() == tcell.KeyEscape || event.Key() == tcell.KeyRune {
+				return nil
+			}
+		}
 		if event.Key() == tcell.KeyRune && strings.EqualFold(string(event.Rune()), "q") {
 			app.Stop()
 			return nil
