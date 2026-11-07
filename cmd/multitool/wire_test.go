@@ -1,10 +1,18 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/Diaszano/GoMultitool/internal/domain/device"
+	"github.com/Diaszano/GoMultitool/internal/domain/image"
+	"github.com/Diaszano/GoMultitool/internal/infrastructure/multitool"
 )
 
 func TestCountingReaderReportsProgress(t *testing.T) {
@@ -34,5 +42,41 @@ func TestBackupDestinationRejectsPathNames(t *testing.T) {
 	got, err := backupDestination("/mt/backups", "tv box")
 	if err != nil || got != "/mt/backups/tv box.img.gz" {
 		t.Fatalf("backupDestination = %q, %v", got, err)
+	}
+}
+
+type fixedCatalog struct{ d device.Device }
+
+func (c fixedCatalog) List(context.Context) ([]device.Device, error) {
+	return []device.Device{c.d}, nil
+}
+
+func (c fixedCatalog) Resolve(context.Context, string) (device.Device, error) { return c.d, nil }
+
+type failingClose struct{ io.Reader }
+
+var errDecompress = errors.New("xz: compressed data is corrupt")
+
+func (failingClose) Close() error { return errDecompress }
+
+func TestBurnReportsSourceCloseError(t *testing.T) {
+	data := bytes.Repeat([]byte{7}, 4096)
+	path := filepath.Join(t.TempDir(), "target")
+	if err := os.WriteFile(path, make([]byte, 8192), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	original := openImage
+	t.Cleanup(func() { openImage = original })
+	openImage = func(context.Context, string) (io.ReadCloser, error) {
+		return failingClose{bytes.NewReader(data)}, nil
+	}
+	target := device.Device{
+		ID: "usb", Path: path, Kind: device.KindUSB, SizeBytes: 8192, LogicalSectorSize: 512,
+	}
+	img := image.Image{Path: "a.img.xz", Format: image.FormatXZ, SizeBytes: int64(len(data))}
+	_, err := burn(
+		context.Background(), fixedCatalog{target}, multitool.Workspace{}, img, target, nil)
+	if !errors.Is(err, errDecompress) {
+		t.Fatalf("burn error = %v, want the source close error", err)
 	}
 }

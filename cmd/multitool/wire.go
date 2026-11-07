@@ -26,6 +26,9 @@ import (
 
 const lockPath = "/run/multitool.lock"
 
+// openImage is a seam so tests can fake the decompressor.
+var openImage = compression.Open
+
 // services wires the real Linux adapters into the TUI.
 func services(catalog linuxsys.SysfsCatalog, locator multitool.Locator) tui.Services {
 	return tui.Services{
@@ -72,12 +75,12 @@ func services(catalog linuxsys.SysfsCatalog, locator multitool.Locator) tui.Serv
 
 func burn(
 	ctx context.Context,
-	catalog linuxsys.SysfsCatalog,
+	catalog application.DeviceCatalog,
 	ws multitool.Workspace,
 	img image.Image,
 	target device.Device,
 	p tui.Progress,
-) (installer.BurnResult, error) {
+) (_ installer.BurnResult, err error) {
 	if img.SizeBytes == 0 {
 		inspected, err := compression.Inspect(ctx, img.Path)
 		if err != nil {
@@ -90,11 +93,12 @@ func burn(
 		Target:  target,
 		Summary: fmt.Sprintf("%s -> %s", filepath.Base(img.Path), target.Path),
 	}
-	src, err := compression.Open(ctx, img.Path)
+	src, err := openImage(ctx, img.Path)
 	if err != nil {
 		return installer.BurnResult{}, err
 	}
-	defer func() { _ = src.Close() }()
+	// For .img.xz, Close is the only place xz's exit status (integrity check) shows up.
+	defer func() { err = errors.Join(err, src.Close()) }()
 	return installer.Burn{
 		Guard: storageguard.Guard{Catalog: catalog},
 		OpenTarget: func(path string) (application.Target, error) {

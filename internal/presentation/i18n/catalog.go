@@ -50,6 +50,7 @@ type Catalog struct {
 	ErrorPrefix      string
 	Loading          string
 	Busy             string
+	OK               string
 	InUseLabel       string
 	BootMediaLabel   string
 	DecimalSeparator string
@@ -96,6 +97,7 @@ func For(locale Locale) Catalog {
 			ErrorPrefix:      "Error: ",
 			Loading:          "Loading…",
 			Busy:             "Another operation is running.",
+			OK:               "OK",
 			InUseLabel:       "in use",
 			BootMediaLabel:   "boot media",
 			DecimalSeparator: ".",
@@ -126,6 +128,7 @@ func For(locale Locale) Catalog {
 		ErrorPrefix:      "Erro: ",
 		Loading:          "Carregando…",
 		Busy:             "Outra operação em andamento.",
+		OK:               "OK",
 		InUseLabel:       "em uso",
 		BootMediaLabel:   "mídia de boot",
 		DecimalSeparator: ",",

@@ -75,8 +75,8 @@ func TestCatalogContainsMenuInBothLocales(t *testing.T) {
 				t.Errorf("locale %q menu item %d = %+v, want ID %q", locale, i, item, want[i])
 			}
 		}
-		if catalog.Loading == "" || catalog.Busy == "" {
-			t.Errorf("locale %q is missing loading or busy text", locale)
+		if catalog.Loading == "" || catalog.Busy == "" || catalog.OK == "" {
+			t.Errorf("locale %q is missing loading, busy or OK text", locale)
 		}
 	}
 }

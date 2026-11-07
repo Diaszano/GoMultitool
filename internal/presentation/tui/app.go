@@ -18,6 +18,7 @@ import (
 )
 
 // Progress reports streamed bytes; total 0 means unknown.
+// It is called from the operation goroutine; wrap UI updates in QueueUpdateDraw.
 type Progress func(done, total int64)
 
 // Services are the operations the TUI runs off the UI goroutine.
@@ -77,7 +78,7 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 				onHome = false
 				app.SetRoot(tview.NewModal().
 					SetText(errorText(catalog, err)).
-					AddButtons([]string{"OK"}).
+					AddButtons([]string{catalog.OK}).
 					SetDoneFunc(func(int, string) { goHome() }), true)
 			}
 		case i18n.MenuExit:
