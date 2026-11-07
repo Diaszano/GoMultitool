@@ -3,6 +3,7 @@ package linux
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -220,7 +221,7 @@ func busyFixture(t *testing.T, swaps string) (SysfsCatalog, string) {
 		}
 	}
 	copyFixtureBlockDevices(t, sys)
-	return SysfsCatalog{SysRoot: sys, ProcRoot: proc}, sys
+	return SysfsCatalog{SysRoot: sys, ProcRoot: proc, DevRoot: filepath.Join(root, "dev")}, sys
 }
 
 func mountedByID(t *testing.T, c SysfsCatalog) map[string]bool {
@@ -340,12 +341,20 @@ func TestSysfsCatalogBlkidTimeoutMeansBootMedia(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	fakeBlkid(t, "#!/bin/sh\nexec sleep 5\n")
-	c.BlkidTimeout = 200 * time.Millisecond
+	sleep, err := exec.LookPath("sleep")
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(t.TempDir(), "started")
+	fakeBlkid(t, "#!/bin/sh\n: > "+marker+"\nexec "+sleep+" 5\n")
+	c.BlkidTimeout = time.Second // first exec of a fresh script can take 300ms on macOS
 	start := time.Now()
 	got, err := c.List(context.Background())
 	if err != nil {
 		t.Fatal(err)
+	}
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatalf("blkid never started: %v", err)
 	}
 	if time.Since(start) > 2*time.Second {
 		t.Fatalf("List took %v", time.Since(start))
