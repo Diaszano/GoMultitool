@@ -1,7 +1,11 @@
 // Package i18n contains the human-facing presentation strings.
 package i18n
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/Diaszano/GoMultitool/internal/domain/device"
+)
 
 // Locale identifies a supported interface language.
 type Locale string
@@ -48,22 +52,21 @@ type MenuItem struct {
 
 // Catalog groups all application-authored text shown to a person.
 type Catalog struct {
-	ProductName           string
-	Menu                  [10]MenuItem
-	Navigation            string
-	HardwareTitle         string
-	EmptyInventory        string
-	ErrorPrefix           string
-	MountedLabel          string
-	ConsoleTitle          string
-	ConsoleHardwareOption string
-	ConsoleExitOption     string
-	ConsolePrompt         string
-	InvalidOption         string
-	VersionLabel          string
-	CommitLabel           string
-	BuildLabel            string
-	Usage                 string
+	ProductName      string
+	Menu             [10]MenuItem
+	Navigation       string
+	HardwareTitle    string
+	EmptyInventory   string
+	ErrorPrefix      string
+	InUseLabel       string
+	BootMediaLabel   string
+	DecimalSeparator string
+	Kinds            map[device.Kind]string
+	ConsolePrompt    string
+	InvalidOption    string
+	CommitLabel      string
+	BuildLabel       string
+	Usage            string
 }
 
 // DetectLocale selects the first supported locale from the standard environment order.
@@ -100,20 +103,19 @@ func For(locale Locale) Catalog {
 				{MenuTerminal, "Terminal", "Coming soon"},
 				{MenuExit, "Exit", "Leave GoMultitool"},
 			},
-			Navigation:            "↑/↓ Move • Enter Select • Esc Back • q Quit",
-			HardwareTitle:         "Storage devices",
-			EmptyInventory:        "No devices found.",
-			ErrorPrefix:           "Error: ",
-			MountedLabel:          "mounted",
-			ConsoleTitle:          "GoMultitool",
-			ConsoleHardwareOption: "Hardware information",
-			ConsoleExitOption:     "Exit",
-			ConsolePrompt:         "Choose: ",
-			InvalidOption:         "Invalid option.",
-			VersionLabel:          "GoMultitool",
-			CommitLabel:           "Commit",
-			BuildLabel:            "Build",
-			Usage:                 "Usage: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
+			Navigation:       "↑/↓ Move • Enter Select • Esc Back • q Quit",
+			HardwareTitle:    "Storage devices",
+			EmptyInventory:   "No devices found.",
+			ErrorPrefix:      "Error: ",
+			InUseLabel:       "in use",
+			BootMediaLabel:   "boot media",
+			DecimalSeparator: ".",
+			Kinds:            kinds("unknown"),
+			ConsolePrompt:    "Choose: ",
+			InvalidOption:    "Invalid option.",
+			CommitLabel:      "Commit",
+			BuildLabel:       "Build",
+			Usage:            "Usage: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
 		}
 	}
 	return Catalog{
@@ -134,19 +136,28 @@ func For(locale Locale) Catalog {
 			{MenuTerminal, "Terminal", "Em breve"},
 			{MenuExit, "Sair", "Fechar o GoMultitool"},
 		},
-		Navigation:            "↑/↓ navegar • Enter selecionar • Esc voltar • q sair",
-		HardwareTitle:         "Dispositivos de armazenamento",
-		EmptyInventory:        "Nenhum dispositivo encontrado.",
-		ErrorPrefix:           "Erro: ",
-		MountedLabel:          "montado",
-		ConsoleTitle:          "GoMultitool",
-		ConsoleHardwareOption: "Informações de hardware",
-		ConsoleExitOption:     "Sair",
-		ConsolePrompt:         "Escolha: ",
-		InvalidOption:         "Opção inválida.",
-		VersionLabel:          "GoMultitool",
-		CommitLabel:           "Commit",
-		BuildLabel:            "Compilação",
-		Usage:                 "Uso: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
+		Navigation:       "↑/↓ navegar • Enter selecionar • Esc voltar • q sair",
+		HardwareTitle:    "Dispositivos de armazenamento",
+		EmptyInventory:   "Nenhum dispositivo encontrado.",
+		ErrorPrefix:      "Erro: ",
+		InUseLabel:       "em uso",
+		BootMediaLabel:   "mídia de boot",
+		DecimalSeparator: ",",
+		Kinds:            kinds("desconhecido"),
+		ConsolePrompt:    "Escolha: ",
+		InvalidOption:    "Opção inválida.",
+		CommitLabel:      "Commit",
+		BuildLabel:       "Compilação",
+		Usage:            "Uso: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
+	}
+}
+
+func kinds(unknown string) map[device.Kind]string {
+	return map[device.Kind]string{
+		device.KindEMMC:    "eMMC",
+		device.KindSD:      "SD",
+		device.KindUSB:     "USB",
+		device.KindNAND:    "NAND",
+		device.KindUnknown: unknown,
 	}
 }

@@ -24,9 +24,9 @@ func Run(
 		if _, err := fmt.Fprintf(
 			output,
 			"%s\n1. %s\n0. %s\n",
-			catalog.ConsoleTitle,
-			catalog.ConsoleHardwareOption,
-			catalog.ConsoleExitOption,
+			catalog.ProductName,
+			menuLabel(catalog, i18n.MenuHardware),
+			menuLabel(catalog, i18n.MenuExit),
 		); err != nil {
 			return err
 		}
@@ -64,10 +64,8 @@ func Run(
 			for _, d := range devices {
 				if _, err := fmt.Fprintf(
 					output,
-					"%s (%s) — %d bytes\n",
-					d.Path,
-					d.Kind,
-					d.SizeBytes,
+					"%s\n",
+					catalog.DeviceLine(d),
 				); err != nil {
 					return err
 				}
@@ -78,4 +76,13 @@ func Run(
 			}
 		}
 	}
+}
+
+func menuLabel(c i18n.Catalog, id i18n.MenuItemID) string {
+	for _, item := range c.Menu {
+		if item.ID == id {
+			return item.Label
+		}
+	}
+	return ""
 }

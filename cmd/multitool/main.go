@@ -23,28 +23,14 @@ import (
 func main() {
 	devices := linuxsys.SysfsCatalog{SysRoot: "/sys", ProcRoot: "/proc"}
 	messages := i18n.For(i18n.DetectLocale(os.Getenv))
-	if len(os.Args) == 2 && os.Args[1] == "tui" {
+	startTUI := func() error {
 		service := discovery.Service{Catalog: devices}
-		app := tui.New(
+		return tui.New(
 			func() ([]device.Device, error) { return service.Inventory(context.Background()) },
 			messages,
-		)
-		err := app.Run()
-		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		return
+		).Run()
 	}
-	if len(os.Args) == 2 && os.Args[1] == "--console" {
-		service := discovery.Service{Catalog: devices}
-		if err := console.Run(os.Stdin, os.Stdout, service.Inventory, messages); err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		return
-	}
-	os.Exit(run(os.Args[1:], "/", devices, messages, os.Stdout, os.Stderr))
+	os.Exit(run(os.Args[1:], "/", devices, messages, os.Stdin, os.Stdout, os.Stderr, startTUI))
 }
 
 func run(
@@ -52,14 +38,31 @@ func run(
 	root string,
 	devices application.DeviceCatalog,
 	messages i18n.Catalog,
+	stdin io.Reader,
 	stdout, stderr io.Writer,
+	startTUI func() error,
 ) int {
+	if len(args) == 1 && args[0] == "tui" {
+		if err := startTUI(); err != nil {
+			_, _ = fmt.Fprintln(stderr, err)
+			return 1
+		}
+		return 0
+	}
+	if len(args) == 1 && args[0] == "--console" {
+		service := discovery.Service{Catalog: devices}
+		if err := console.Run(stdin, stdout, service.Inventory, messages); err != nil {
+			_, _ = fmt.Fprintln(stderr, err)
+			return 1
+		}
+		return 0
+	}
 	if len(args) == 1 && args[0] == "version" {
 		info := buildinfo.Current()
 		if _, err := fmt.Fprintf(
 			stdout,
 			"%s %s\n%s: %s\n%s: %s\n",
-			messages.VersionLabel,
+			messages.ProductName,
 			info.Version,
 			messages.CommitLabel,
 			info.Commit,

@@ -2,7 +2,6 @@
 package tui
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -78,10 +77,7 @@ func renderHardware(devices []device.Device, err error, catalog i18n.Catalog) st
 	}
 	var output strings.Builder
 	for _, d := range devices {
-		fmt.Fprintf(&output, "%s  %s  %s  %d bytes", d.Path, d.Kind, d.ID, d.SizeBytes)
-		if d.Mounted {
-			fmt.Fprintf(&output, "  (%s)", catalog.MountedLabel)
-		}
+		output.WriteString(catalog.DeviceLine(d))
 		output.WriteByte('\n')
 	}
 	return output.String()

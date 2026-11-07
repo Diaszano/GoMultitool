@@ -208,7 +208,7 @@ func TestHardwareScreenShowsInventoryEmptyAndError(t *testing.T) {
 			devices: []device.Device{{
 				ID: "mmc0", Path: "/dev/mmc0", Kind: device.KindEMMC, SizeBytes: 512,
 			}},
-			contains: "/dev/mmc0",
+			contains: "/dev/mmc0  eMMC  0 MB",
 		},
 		{name: "empty", contains: "Nenhum dispositivo encontrado."},
 		{name: "error", err: errors.New("sysfs unavailable"), contains: "sysfs unavailable"},
