@@ -260,7 +260,10 @@ func TestSysfsCatalogToleratesMissingSwaps(t *testing.T) {
 
 func TestSysfsCatalogMarksHeldPartitionBusy(t *testing.T) {
 	c, sys := busyFixture(t, "")
-	if err := os.MkdirAll(filepath.Join(sys, "block/mmcblk0/mmcblk0p1/holders/dm-0"), 0o755); err != nil {
+	if err := os.MkdirAll(
+		filepath.Join(sys, "block/mmcblk0/mmcblk0p1/holders/dm-0"),
+		0o755,
+	); err != nil {
 		t.Fatal(err)
 	}
 	if !mountedByID(t, c)["mmcblk0"] {

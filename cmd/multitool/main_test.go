@@ -187,14 +187,29 @@ func TestDiagnoseJSON(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	files := map[string]os.FileMode{"proc/cmdline": 0o600, "boot/zImage": 0o600, "var/log/syslog": 0o000}
+	files := map[string]os.FileMode{
+		"proc/cmdline":   0o600,
+		"boot/zImage":    0o600,
+		"var/log/syslog": 0o000,
+	}
 	for name, mode := range files {
-		if err := os.WriteFile(filepath.Join(root, name), []byte("root=/dev/mmcblk0p2\n"), mode); err != nil {
+		if err := os.WriteFile(
+			filepath.Join(root, name),
+			[]byte("root=/dev/mmcblk0p2\n"),
+			mode,
+		); err != nil {
 			t.Fatal(err)
 		}
 	}
 	var out, stderr bytes.Buffer
-	code := run([]string{"diagnose", "--json"}, root, testCatalog{}, i18n.For(i18n.LocalePtBR), &out, &stderr)
+	code := run(
+		[]string{"diagnose", "--json"},
+		root,
+		testCatalog{},
+		i18n.For(i18n.LocalePtBR),
+		&out,
+		&stderr,
+	)
 	if code != 0 {
 		t.Fatalf("code=%d stderr=%s", code, stderr.String())
 	}
