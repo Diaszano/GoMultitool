@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2004,SC2012,SC2034,SC2068,SC2086,SC2128,SC2181,SC2199,SC2206,SC2231,SC2327,SC2328
 
 # In case of SSH session, TTY console is the SSH allocated PTY, otherwise
 # use the regular TTY foreground terminal
@@ -305,8 +306,8 @@ function choose_file() {
         COUNTER=0
 
         for FILE in $GLOB; do
-                FILES+=($FILE)
-                BASENAME=$(basename $FILE)
+                FILES+=("$FILE")
+                BASENAME=$(basename "$FILE")
         STR_FILES+=($COUNTER "$BASENAME")
                 COUNTER=$(($COUNTER + 1))
         done
@@ -320,7 +321,7 @@ function choose_file() {
         return 1
     fi
 
-    echo ${FILES[$CHOICE]}
+    echo "${FILES[$CHOICE]}"
 
     return 0
     
@@ -422,11 +423,11 @@ function do_backup() {
     # Do the backup!
     set_led_state "$DEVICE_NAME"
 
-    (pv -n "/dev/$BLK_DEVICE" | pigz | dd of="$BACKUP_PATH" iflag=fullblock oflag=direct bs=512k 2>/dev/null) 2>&1 | dialog \
+    (set -o pipefail; pv -n "/dev/$BLK_DEVICE" | pigz | dd of="$BACKUP_PATH" iflag=fullblock oflag=direct bs=512k 2>/dev/null) 2>&1 | dialog \
         --backtitle "$BACKTITLE" \
         --gauge "Backup of device $BLK_DEVICE is in progress, please wait..." 10 70 0
 
-    ERR=$?
+    ERR=${PIPESTATUS[0]}
 
     if [ $ERR -ne 0 ]; then
         inform_wait "An error occurred ($ERR) while backing up the device, backup aborted"
@@ -502,11 +503,11 @@ function do_restore() {
     
     set_led_state "$DEVICE_NAME"
 
-    (dd if="$RESTORE_SOURCE" bs=256K | pigz -d | pv -n -s ${DEVICE_SIZE}K | dd of="/dev/$BLK_DEVICE" bs=512K iflag=fullblock oflag=direct 2>/dev/null) 2>&1 | dialog \
+    (set -o pipefail; dd if="$RESTORE_SOURCE" bs=256K | pigz -d | pv -n -s ${DEVICE_SIZE}K | dd of="/dev/$BLK_DEVICE" bs=512K iflag=fullblock oflag=direct 2>/dev/null) 2>&1 | dialog \
         --backtitle "$BACKTITLE" \
         --gauge "Restore of backup $BASENAME to device $BLK_DEVICE in progress, please wait..." 10 70 0
 
-    ERR=$?
+    ERR=${PIPESTATUS[0]}
 
     if [ $ERR -ne 0 ]; then
         unmount_mt_partition
@@ -590,7 +591,7 @@ function get_decompression_cli() {
         CANDIDATE_UNCOMPRESSED_SIZE=$(echo $CANDIDATE_STR | cut -d " " -f 4)
         CANDIDATE_IMAGE=$(echo $CANDIDATE_STR | cut -d " " -f 6)
 
-        D_COMMAND_LINE="7zr e -bb0 -bd -so -mmt4 '$TARGET' '$CANDIDATE_IMAGE' | pv -n -s $CANDIDATE_UNCOMPRESSED_SIZE"
+        D_COMMAND_LINE="7zr e -bb0 -bd -so -mmt4 $(printf '%q' "$TARGET") $(printf '%q' "$CANDIDATE_IMAGE") | pv -n -s $CANDIDATE_UNCOMPRESSED_SIZE"
         D_FORMAT="7z archive"
         D_REAL_FILE="$CANDIDATE_IMAGE"
 
@@ -614,7 +615,7 @@ function get_decompression_cli() {
         CANDIDATE_UNCOMPRESSED_SIZE=$(echo $CANDIDATE_STR | cut -d " " -f 1)
         CANDIDATE_IMAGE=$(echo $CANDIDATE_STR | cut -d " " -f 4)
 
-        D_COMMAND_LINE="unzip -e -p '$TARGET' '$CANDIDATE_IMAGE' | pv -n -s $CANDIDATE_UNCOMPRESSED_SIZE"
+        D_COMMAND_LINE="unzip -e -p $(printf '%q' "$TARGET") $(printf '%q' "$CANDIDATE_IMAGE") | pv -n -s $CANDIDATE_UNCOMPRESSED_SIZE"
         D_FORMAT="zip archive"
         D_REAL_FILE="$CANDIDATE_IMAGE"
 
@@ -647,7 +648,7 @@ function get_decompression_cli() {
         [[ "$FORMAT" = "bzip2" ]] && TAR_FMT_SWITCH="-j"
         [[ "$FORMAT" = "lzma" ]] && TAR_FMT_SWITCH="--lzma"
 
-        D_COMMAND_LINE="pv -n '$TARGET' | tar -O -x ${TAR_FMT_SWITCH} -f - '$CANDIDATE_IMAGE'"
+        D_COMMAND_LINE="pv -n $(printf '%q' "$TARGET") | tar -O -x ${TAR_FMT_SWITCH} -f - $(printf '%q' "$CANDIDATE_IMAGE")"
         D_FORMAT="tar archive"
         D_REAL_FILE="$CANDIDATE_IMAGE"
 
@@ -656,30 +657,30 @@ function get_decompression_cli() {
     fi
 
     if [[ "$FORMAT" = "gzip" ]]; then
-        D_COMMAND_LINE="pv -n '$TARGET' | pigz -d"
+        D_COMMAND_LINE="pv -n $(printf '%q' "$TARGET") | pigz -d"
         D_FORMAT="gzip compressed image"
         return 0
     fi
 
     if [[ "$FORMAT" = "xz" ]]; then
-        D_COMMAND_LINE="pv -n '$TARGET' | xz -d -T4"
+        D_COMMAND_LINE="pv -n $(printf '%q' "$TARGET") | xz -d -T4"
         D_FORMAT="xz compressed image"
         return 0
     fi
 
     if [[ "$FORMAT" = "bzip2" ]]; then
-        D_COMMAND_LINE="pv -n '$TARGET' | bzip2 -d -c"
+        D_COMMAND_LINE="pv -n $(printf '%q' "$TARGET") | bzip2 -d -c"
         D_FORMAT="bzip2 compressed image"
         return 0
     fi
 
     if [[ "$FORMAT" = "lzma" ]]; then
-        D_COMMAND_LINE="pv -n '$TARGET' | lzma -d -c"
+        D_COMMAND_LINE="pv -n $(printf '%q' "$TARGET") | lzma -d -c"
         D_FORMAT="lzma compressed image"
         return 0
     fi
 
-    D_COMMAND_LINE="pv -n '$TARGET'"
+    D_COMMAND_LINE="pv -n $(printf '%q' "$TARGET")"
     D_FORMAT="raw image"
 
     return 0
@@ -740,11 +741,11 @@ function do_burn() {
         return 2
     fi
 
-    BASENAME=$(basename $IMAGE_SOURCE)
+    BASENAME=$(basename "$IMAGE_SOURCE")
 
     inform "Scanning the source image file, this could take a while, please wait..."
 
-    get_decompression_cli $IMAGE_SOURCE
+    get_decompression_cli "$IMAGE_SOURCE"
 
     if [[ $? -ne 0 ]]; then
         inform_wait "$D_ERROR_TEXT"
@@ -799,12 +800,12 @@ function do_burn() {
         COMMAND_RATE_VALUE=$(get_command_rate "/dev/$BLK_DEVICE")
     fi
 
-    (eval "$OPERATION_CLI") 2>&1 | dialog \
+    (set -o pipefail; eval "$OPERATION_CLI") 2>&1 | dialog \
         --colors \
         --backtitle "$BACKTITLE" \
         --gauge "$OPERATION_TEXT" 18 70 0
 
-    ERR=$?
+    ERR=${PIPESTATUS[0]}
 
     if [ $ERR -ne 0 ]; then
         unmount_mt_partition
@@ -826,7 +827,7 @@ function do_burn() {
         inform "Restoring partition table and installing custom u-boot loader. This will take a moment..."
         
         OPERATION_CLI="$D_COMMAND_LINE 2>/dev/null | dd of='/dev/$BLK_DEVICE' bs=32k count=1 iflag=fullblock oflag=direct 2>/dev/null"
-        (eval "$OPERATION_CLI")
+        (set -o pipefail; eval "$OPERATION_CLI")
 
         ERR=$?
 
@@ -905,11 +906,11 @@ function do_install_stepnand() {
         return 2
     fi
 
-    BASENAME=$(basename $IMAGE_SOURCE)
+    BASENAME=$(basename "$IMAGE_SOURCE")
 
     inform "Scanning the source image file, this could take a while, please wait..."
 
-    get_decompression_cli $IMAGE_SOURCE
+    get_decompression_cli "$IMAGE_SOURCE"
 
     if [[ $? -ne 0 ]]; then
         inform_wait "$D_ERROR_TEXT"
@@ -930,12 +931,12 @@ function do_install_stepnand() {
         OPERATION_TEXT="${BOLD}Image file:${RESET} $BASENAME\n${BOLD}Source format:${RESET} $D_FORMAT\n${BOLD}Destination:${RESET} $BLK_DEVICE\n\nOperation in progress, please wait..."
     fi
 
-    (eval "$OPERATION_CLI") 2>&1 | dialog \
+    (set -o pipefail; eval "$OPERATION_CLI") 2>&1 | dialog \
         --colors \
         --backtitle "$BACKTITLE" \
         --gauge "$OPERATION_TEXT" 18 70 0
 
-    ERR=$?
+    ERR=${PIPESTATUS[0]}
 
     if [ $ERR -ne 0 ]; then
         unmount_mt_partition
@@ -1033,7 +1034,14 @@ function do_erase_mmc() {
     ERASE_SIZE=${ERASE_SIZE:-"4M"}
     DEVICE_SIZE=$(cat /sys/block/$BLK_DEVICE/size)
     DEVICE_SIZE=$((DEVICE_SIZE / 2)) # convert sectors to kilobytes
-    (pv -n -s ${DEVICE_SIZE}K /dev/zero | dd of="/dev/$BLK_DEVICE" iflag=fullblock bs=$ERASE_SIZE oflag=direct 2>/dev/null) 2>&1 | dialog --gauge "Erase is in progress, please wait..." 10 70 0
+    (set -o pipefail; pv -n -s ${DEVICE_SIZE}K /dev/zero | dd of="/dev/$BLK_DEVICE" iflag=fullblock bs=$ERASE_SIZE oflag=direct 2>/dev/null) 2>&1 | dialog --gauge "Erase is in progress, please wait..." 10 70 0
+
+    ERR=${PIPESTATUS[0]}
+
+    if [ $ERR -ne 0 ]; then
+        inform_wait "An error occurred ($ERR) while erasing the device, erase aborted"
+        return 1
+    fi
 
     inform_wait "Success! Device $BLK_DEVICE has been erased!"
 

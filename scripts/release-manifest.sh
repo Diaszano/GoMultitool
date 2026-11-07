@@ -88,7 +88,7 @@ manifest = {
     "version": version,
     "source_commit": commit,
     "image": pathlib.Path(image).name,
-    "image_sha256": hashlib.sha256(pathlib.Path(image).read_bytes()).hexdigest(),
+    "image_sha256": hashlib.file_digest(open(image, "rb"), "sha256").hexdigest(),
     "boot_components": {
         name: component(path)
         for name, path in {
