@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/storageguard"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	"github.com/Diaszano/GoMultitool/internal/domain/image"
@@ -54,7 +55,7 @@ func (r *cancelReader) Read(p []byte) (int, error) {
 	return n, nil
 }
 
-type syncErrorTarget struct{ Target }
+type syncErrorTarget struct{ application.Target }
 
 func (syncErrorTarget) Sync() error { return errors.New("sync failed") }
 
@@ -95,7 +96,7 @@ func TestInstallerWritesAndVerifies(t *testing.T) {
 		gp,
 		true,
 		g,
-		func(string) (Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
+		func(string) (application.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -145,7 +146,7 @@ func TestInstallerRejectsUnconfirmedAndShortSource(t *testing.T) {
 		gp,
 		true,
 		g,
-		func(string) (Target, error) { return newFileTarget(t), nil },
+		func(string) (application.Target, error) { return newFileTarget(t), nil },
 	)
 	if !errors.Is(err, io.ErrUnexpectedEOF) {
 		t.Fatalf("error=%v", err)
@@ -174,7 +175,7 @@ func TestInstallerRejectsDecompressionAndShortWriteErrors(t *testing.T) {
 		gp,
 		true,
 		g,
-		func(string) (Target, error) { return newFileTarget(t), nil },
+		func(string) (application.Target, error) { return newFileTarget(t), nil },
 	); err == nil {
 		t.Fatal("decompression error ignored")
 	}
@@ -185,7 +186,7 @@ func TestInstallerRejectsDecompressionAndShortWriteErrors(t *testing.T) {
 		gp,
 		true,
 		g,
-		func(string) (Target, error) { return shortTarget{}, nil },
+		func(string) (application.Target, error) { return shortTarget{}, nil },
 	)
 	if !errors.Is(err, io.ErrShortWrite) {
 		t.Fatalf("error=%v", err)
@@ -215,7 +216,7 @@ func TestInstallerRejectsCancellationAndSyncFailure(t *testing.T) {
 		gp,
 		true,
 		g,
-		func(string) (Target, error) { return newFileTarget(t), nil },
+		func(string) (application.Target, error) { return newFileTarget(t), nil },
 	)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("error=%v", err)
@@ -227,14 +228,14 @@ func TestInstallerRejectsCancellationAndSyncFailure(t *testing.T) {
 		gp,
 		true,
 		g,
-		func(string) (Target, error) { return syncErrorTarget{Target: newFileTarget(t)}, nil },
+		func(string) (application.Target, error) { return syncErrorTarget{Target: newFileTarget(t)}, nil },
 	)
 	if err == nil || err.Error() != "sync failed" {
 		t.Fatalf("error=%v", err)
 	}
 }
 
-func newFileTarget(t *testing.T) Target {
+func newFileTarget(t *testing.T) application.Target {
 	t.Helper()
 	f, err := os.CreateTemp(t.TempDir(), "target")
 	if err != nil {

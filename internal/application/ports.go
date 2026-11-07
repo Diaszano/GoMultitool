@@ -14,15 +14,9 @@ type DeviceCatalog interface {
 	Resolve(context.Context, string) (device.Device, error)
 }
 
-// BlockOpener opens a block device for explicitly selected access.
-type BlockOpener interface {
-	OpenRead(context.Context, string) (io.ReadCloser, error)
-	OpenWrite(context.Context, string) (BlockWriter, error)
-}
-
-// BlockWriter synchronizes writes before closing the device.
-type BlockWriter interface {
-	io.Writer
+// Target is a block device opened for synchronized writes and readback.
+type Target interface {
+	io.ReadWriteSeeker
 	Sync() error
 	Close() error
 }

@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/infrastructure/filesystem"
 )
 
@@ -79,7 +80,7 @@ func (s Service) Prepare(
 		_ = tmp.Close()
 		return err
 	}
-	if err = copyContext(ctx, tmp, src); err != nil {
+	if _, err = io.Copy(tmp, application.ContextReader(ctx, src)); err != nil {
 		_ = src.Close()
 		_ = tmp.Close()
 		return err
@@ -189,31 +190,6 @@ func writeArtifact(root *os.Root, name string, file File) error {
 		return err
 	}
 	return f.Close()
-}
-
-func copyContext(ctx context.Context, dst io.Writer, src io.Reader) error {
-	buf := make([]byte, 64*1024)
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-		n, readErr := src.Read(buf)
-		if n > 0 {
-			written, err := dst.Write(buf[:n])
-			if err != nil {
-				return err
-			}
-			if written != n {
-				return io.ErrShortWrite
-			}
-		}
-		if readErr == io.EOF {
-			return nil
-		}
-		if readErr != nil {
-			return readErr
-		}
-	}
 }
 
 var _ RootFSMounter = filesystem.ImageMounter{}

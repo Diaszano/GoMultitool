@@ -47,18 +47,10 @@ func Inspect(ctx context.Context, path string) (image.Image, error) {
 	if err != nil {
 		return image.Image{}, err
 	}
-	var size int64
-	buf := make([]byte, 32*1024)
-	for {
-		n, readErr := r.Read(buf)
-		size += int64(n)
-		if readErr == io.EOF {
-			break
-		}
-		if readErr != nil {
-			_ = r.Close()
-			return image.Image{}, readErr
-		}
+	size, err := io.Copy(io.Discard, r)
+	if err != nil {
+		_ = r.Close()
+		return image.Image{}, err
 	}
 	if err := r.Close(); err != nil {
 		return image.Image{}, err
