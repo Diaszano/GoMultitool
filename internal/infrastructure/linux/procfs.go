@@ -10,7 +10,9 @@ import (
 
 var partitionSuffix = regexp.MustCompile(`(?:p)?[0-9]+$`)
 
-func (c SysfsCatalog) isMounted(path string) bool {
+// isBusy reports mounted filesystems, active swap, and kernel holders such as
+// device-mapper or MD on the device or any of its partitions.
+func (c SysfsCatalog) isBusy(name, path string) bool {
 	b, err := os.ReadFile(filepath.Join(c.ProcRoot, "mounts"))
 	if err != nil {
 		return true
@@ -18,6 +20,23 @@ func (c SysfsCatalog) isMounted(path string) bool {
 	for _, line := range strings.Split(string(b), "\n") {
 		fields := strings.Fields(line)
 		if len(fields) >= 2 && sameDeviceOrPartition(fields[0], path) {
+			return true
+		}
+	}
+	swaps, err := os.ReadFile(filepath.Join(c.ProcRoot, "swaps"))
+	if err != nil && !os.IsNotExist(err) {
+		return true
+	}
+	for _, line := range strings.Split(string(swaps), "\n")[1:] {
+		fields := strings.Fields(line)
+		if len(fields) > 0 && sameDeviceOrPartition(fields[0], path) {
+			return true
+		}
+	}
+	root := filepath.Join(c.SysRoot, "block", name)
+	partitions, _ := filepath.Glob(filepath.Join(root, name+"*", "holders"))
+	for _, dir := range append(partitions, filepath.Join(root, "holders")) {
+		if entries, err := os.ReadDir(dir); err == nil && len(entries) > 0 {
 			return true
 		}
 	}
