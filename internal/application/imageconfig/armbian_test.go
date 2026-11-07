@@ -37,13 +37,18 @@ func TestRenderArmbianPresetsAndRejectsUnsupportedVersionsOrVariables(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(result.FirstBoot), `PRESET_ROOT_PASSWORD="Root\$;pass"`) ||
-		!strings.Contains(string(result.FirstBoot), `PRESET_NET_ETHERNET_ENABLED="1"`) {
-		t.Fatalf("config=%s", result.FirstBoot)
+	firstBoot := string(result.Files["root/.not_logged_in_yet"].Data)
+	if !strings.Contains(firstBoot, `PRESET_ROOT_PASSWORD="Root\$;pass"`) ||
+		!strings.Contains(firstBoot, `PRESET_NET_ETHERNET_ENABLED="1"`) {
+		t.Fatalf("config=%s", firstBoot)
 	}
 	if result.Files["root/.not_logged_in_yet"].Mode != 0o600 ||
-		result.Files["home/armbian/.ssh/authorized_keys"].Mode != 0o600 ||
+		result.Files["etc/skel/.ssh/authorized_keys"].Mode != 0o600 ||
+		result.Files["etc/hostname"].Mode != 0o644 ||
 		string(result.Files["etc/hostname"].Data) != "rk3229\n" {
+		t.Fatalf("artifacts=%+v", result.Files)
+	}
+	if _, ok := result.Files["home/armbian/.ssh/authorized_keys"]; ok {
 		t.Fatalf("artifacts=%+v", result.Files)
 	}
 	if _, err := Render(profile, "26.05", p); !errors.Is(err, ErrUnsupportedImage) {
