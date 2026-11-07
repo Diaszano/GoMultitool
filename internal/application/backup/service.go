@@ -110,5 +110,17 @@ func (Service) Create(
 		_ = os.Remove(destination)
 		return backup.Manifest{}, err
 	}
+	// Persist both renames before callers overwrite the source device.
+	d, err := os.Open(dir)
+	if err != nil {
+		return backup.Manifest{}, err
+	}
+	if err := d.Sync(); err != nil {
+		_ = d.Close()
+		return backup.Manifest{}, err
+	}
+	if err := d.Close(); err != nil {
+		return backup.Manifest{}, err
+	}
 	return manifest, nil
 }
