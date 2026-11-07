@@ -23,7 +23,6 @@ func (Writer) Execute(
 	ctx context.Context,
 	plan installation.Plan,
 	source io.Reader,
-	targetPlan storageguard.Plan,
 	confirmed bool,
 	guard storageguard.Guard,
 	openTarget func(string) (application.Target, error),
@@ -34,9 +33,10 @@ func (Writer) Execute(
 	if !confirmed {
 		return ErrConfirmationRequired
 	}
-	if plan.Target != targetPlan.Device || guard.Catalog == nil || openTarget == nil {
+	if guard.Catalog == nil || openTarget == nil {
 		return ErrIdentityMismatch
 	}
+	targetPlan := storageguard.Plan{Device: plan.Target}
 	if err := guard.Revalidate(ctx, targetPlan); err != nil {
 		return err
 	}

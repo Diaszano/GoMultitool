@@ -80,10 +80,6 @@ func TestInstallerWritesAndVerifies(t *testing.T) {
 		LogicalSectorSize: 512,
 	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
-	gp, err := g.Plan(context.Background(), d.Path)
-	if err != nil {
-		t.Fatal(err)
-	}
 	plan := installation.Plan{
 		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
 		Target:  d,
@@ -93,7 +89,6 @@ func TestInstallerWritesAndVerifies(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader(data),
-		gp,
 		true,
 		g,
 		func(string) (application.Target, error) { return os.OpenFile(path, os.O_RDWR, 0) },
@@ -119,7 +114,6 @@ func TestInstallerRejectsUnconfirmedAndShortSource(t *testing.T) {
 		LogicalSectorSize: 512,
 	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
-	gp, _ := g.Plan(context.Background(), d.Path)
 	plan := installation.Plan{
 		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
 		Target:  d,
@@ -129,7 +123,6 @@ func TestInstallerRejectsUnconfirmedAndShortSource(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader(nil),
-		gp,
 		false,
 		g,
 		nil,
@@ -143,7 +136,6 @@ func TestInstallerRejectsUnconfirmedAndShortSource(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader([]byte("short")),
-		gp,
 		true,
 		g,
 		func(string) (application.Target, error) { return newFileTarget(t), nil },
@@ -162,7 +154,6 @@ func TestInstallerRejectsDecompressionAndShortWriteErrors(t *testing.T) {
 		LogicalSectorSize: 512,
 	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
-	gp, _ := g.Plan(context.Background(), d.Path)
 	plan := installation.Plan{
 		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
 		Target:  d,
@@ -172,7 +163,6 @@ func TestInstallerRejectsDecompressionAndShortWriteErrors(t *testing.T) {
 		context.Background(),
 		plan,
 		errorReader{},
-		gp,
 		true,
 		g,
 		func(string) (application.Target, error) { return newFileTarget(t), nil },
@@ -183,7 +173,6 @@ func TestInstallerRejectsDecompressionAndShortWriteErrors(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader(bytes.Repeat([]byte("x"), 512)),
-		gp,
 		true,
 		g,
 		func(string) (application.Target, error) { return shortTarget{}, nil },
@@ -202,7 +191,6 @@ func TestInstallerRejectsCancellationAndSyncFailure(t *testing.T) {
 		LogicalSectorSize: 512,
 	}
 	g := storageguard.Guard{Catalog: writerCatalog{d}}
-	gp, _ := g.Plan(context.Background(), d.Path)
 	plan := installation.Plan{
 		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
 		Target:  d,
@@ -213,7 +201,6 @@ func TestInstallerRejectsCancellationAndSyncFailure(t *testing.T) {
 		ctx,
 		plan,
 		&cancelReader{cancel: cancel},
-		gp,
 		true,
 		g,
 		func(string) (application.Target, error) { return newFileTarget(t), nil },
@@ -225,7 +212,6 @@ func TestInstallerRejectsCancellationAndSyncFailure(t *testing.T) {
 		context.Background(),
 		plan,
 		bytes.NewReader(bytes.Repeat([]byte("x"), 512)),
-		gp,
 		true,
 		g,
 		func(string) (application.Target, error) { return syncErrorTarget{Target: newFileTarget(t)}, nil },
@@ -242,4 +228,33 @@ func newFileTarget(t *testing.T) application.Target {
 		t.Fatal(err)
 	}
 	return f
+}
+
+func TestInstallerRejectsChangedDeviceBeforeOpening(t *testing.T) {
+	d := device.Device{
+		ID:                "usb",
+		Path:              "/dev/sdb",
+		Kind:              device.KindUSB,
+		SizeBytes:         512,
+		LogicalSectorSize: 512,
+	}
+	changed := d
+	changed.ID = "replacement"
+	plan := installation.Plan{
+		Image:   image.Image{Path: "image.img", Format: image.FormatRaw, SizeBytes: 512},
+		Target:  d,
+		Summary: "write",
+	}
+	opened := false
+	err := (Writer{}).Execute(
+		context.Background(),
+		plan,
+		bytes.NewReader(make([]byte, 512)),
+		true,
+		storageguard.Guard{Catalog: writerCatalog{changed}},
+		func(string) (application.Target, error) { opened = true; return nil, nil },
+	)
+	if !errors.Is(err, storageguard.ErrDeviceChanged) || opened {
+		t.Fatalf("err=%v opened=%v", err, opened)
+	}
 }
