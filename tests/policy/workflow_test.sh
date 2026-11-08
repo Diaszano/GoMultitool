@@ -12,7 +12,7 @@ grep -q '^  workflow_call:' "$workflow"
 grep -q '^  policy:' "$workflow"
 grep -q '^  quality:' "$workflow"
 grep -Eq 'uses: actions/checkout@[0-9a-f]{40}' "$workflow"
-grep -Eq 'uses: actions/setup-go@[0-9a-f]{40}' "$workflow"
+grep -Eq 'uses: jdx/mise-action@[0-9a-f]{40}' "$workflow"
 grep -Eq 'uses: actions/upload-artifact@[0-9a-f]{40}' "$workflow"
 if grep -Eq 'uses: [^ ]+@(v[0-9]+|main|master)$' "$workflow"; then
   echo 'CI action is not pinned to a commit SHA' >&2

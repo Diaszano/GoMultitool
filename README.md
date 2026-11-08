@@ -4,11 +4,10 @@ This repository preserves the original Linux recovery environment for Rockchip T
 
 ## Getting started
 
-Install Go 1.27.3 with [mise](https://mise.jdx.dev/), then install the pinned development tools and run the local checks:
+Install Go 1.27.3 and the pinned development tools with [mise](https://mise.jdx.dev/), then run the local checks:
 
 ```sh
 mise install
-make setup
 make check
 ```
 

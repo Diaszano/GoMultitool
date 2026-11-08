@@ -28,14 +28,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+      - uses: jdx/mise-action@b44d12e7d0d8ee7461bb893e1b1993500433185b # v5.2.7
         with:
-          go-version-file: go.mod
+          version: 2026.11.1
+          install_args: go goreleaser github:go-semantic-release/semantic-release
           cache: false
-      - name: Install release tools
-        run: |
-          bash scripts/install-semantic-release.sh
-          bash scripts/install-goreleaser.sh
       - name: Configure tag authentication
         env:
           GITHUB_TOKEN: ${{ github.token }}

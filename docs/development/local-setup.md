@@ -2,19 +2,19 @@
 
 ## Prerequisites
 
-- Go 1.27.3, selected by `.mise.toml`
-- GNU Make, Git, Bash, curl, tar, Node.js/npm, and Python 3/pip
+- [mise](https://mise.jdx.dev/), GNU Make, Git, and Bash
 - Network access for the first tool installation and Go module download
 
-Install Go and the repository tools from the repository root:
+Install Go and every repository tool from the repository root:
 
 ```sh
 mise install
 go version
-make setup
 ```
 
-`make setup` installs versions from `.tools-versions`; checksum-verified shell scripts install ShellCheck, zizmor, GoReleaser, and go-semantic-release. It installs tools under the current Go `GOPATH` and does not modify the project module requirements.
+`.mise.toml` pins Go and the development tools (goimports, golangci-lint, ShellCheck, shfmt, actionlint, govulncheck, gitleaks, zizmor, GoReleaser, go-semantic-release, markdownlint-cli2, and yamllint), plus the Node.js and uv runtimes they need. `mise.lock` records each tool's download URL and SHA-256 for Linux x64 and macOS arm64, and `.mise/locks/` pins the npm and Python dependencies of markdownlint-cli2 and yamllint; CI installs from the same files with `jdx/mise-action`. `make setup` is an alias for `mise install`. Run the Make targets from a shell where mise is activated, or prefix them with `mise exec --`.
+
+To change a tool version, edit `.mise.toml` and refresh the lockfile with `mise lock --platform linux-x64,macos-arm64`.
 
 ## Build and validate
 

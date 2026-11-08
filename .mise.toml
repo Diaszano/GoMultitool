@@ -1,2 +1,19 @@
 [tools]
 go = "1.27.3"
+"go:golang.org/x/tools/cmd/goimports" = "0.47.0"
+golangci-lint = "2.15.0"
+shellcheck = "0.11.0"
+shfmt = "3.14.1"
+actionlint = "1.7.12"
+"go:golang.org/x/vuln/cmd/govulncheck" = "1.9.0"
+gitleaks = "8.30.1"
+zizmor = "1.31.1"
+goreleaser = "2.19.0"
+"github:go-semantic-release/semantic-release" = "2.31.0"
+node = "24.21.0"
+"npm:markdownlint-cli2" = "0.23.3"
+uv = "0.13.7"
+"pipx:yamllint" = "1.38.0"
+
+[settings]
+lockfile = true

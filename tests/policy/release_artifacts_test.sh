@@ -9,8 +9,8 @@ config="$root/.goreleaser.yaml"
 }
 
 cd "$root"
-PATH="$(go env GOPATH)/bin:$PATH" goreleaser check
-PATH="$(go env GOPATH)/bin:$PATH" goreleaser release --snapshot --clean
+goreleaser check
+goreleaser release --snapshot --clean
 archives=("$root"/dist/*.tar.gz)
 [[ ${#archives[@]} == 2 ]] || {
   echo "expected two release archives, got ${#archives[@]}" >&2

@@ -21,7 +21,7 @@ run_case() {
   printf '%s\n' "$message" >> "$repo/README.md"
   git -C "$repo" -c user.name='Policy Test' -c user.email='policy@example.invalid' -C "$repo" add README.md
   git -C "$repo" -c user.name='Policy Test' -c user.email='policy@example.invalid' -C "$repo" commit -qm "$message"
-  output=$(cd "$repo" && PATH="$(go env GOPATH)/bin:$PATH" semantic-release --provider git --ci-condition default --no-ci --dry --allow-initial-development-versions 2>&1) || status=$?
+  output=$(cd "$repo" && semantic-release --provider git --ci-condition default --no-ci --dry --allow-initial-development-versions 2>&1) || status=$?
   if [[ "$expected" == none ]]; then
     [[ "$output" == *'no change'* && "$output" != *'new version:'* ]] || {
       printf '%s\n' "$output" >&2
@@ -33,7 +33,7 @@ run_case() {
       return 1
     fi
     local retry_status=0 retry_output
-    retry_output=$(cd "$repo" && PATH="$(go env GOPATH)/bin:$PATH" semantic-release --provider git --ci-condition default --no-ci --dry --allow-initial-development-versions 2>&1) || retry_status=$?
+    retry_output=$(cd "$repo" && semantic-release --provider git --ci-condition default --no-ci --dry --allow-initial-development-versions 2>&1) || retry_status=$?
     [[ $retry_status -eq 0 && "$retry_output" == *"new version: $expected"* ]] || {
       printf '%s\n' "$retry_output" >&2
       return 1
