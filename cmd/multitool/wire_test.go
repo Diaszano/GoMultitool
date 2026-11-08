@@ -105,7 +105,10 @@ func TestBurnReportsSourceCloseError(t *testing.T) {
 func TestBurnSignalsSizingAndVerifyingPhases(t *testing.T) {
 	var calls [][2]int64
 	record := func(done, total int64) { calls = append(calls, [2]int64{done, total}) }
-	missing := image.Image{Path: filepath.Join(t.TempDir(), "none.img.gz"), Format: image.FormatGzip}
+	missing := image.Image{
+		Path:   filepath.Join(t.TempDir(), "none.img.gz"),
+		Format: image.FormatGzip,
+	}
 	_, err := burn(context.Background(), fixedCatalog{}, multitool.Workspace{}, missing,
 		device.Device{}, record)
 	if err == nil || len(calls) != 1 || calls[0] != [2]int64{-1, 0} {
