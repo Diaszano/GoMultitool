@@ -33,6 +33,7 @@ type backupScreen struct {
 	target   *device.Device
 	running  atomic.Bool
 	cancel   context.CancelFunc
+	meter    meter
 }
 
 func newBackupScreen(
@@ -152,10 +153,11 @@ func (b *backupScreen) start() {
 	b.running.Store(true)
 	b.updateButton()
 	b.form.GetButton(1).SetDisabled(true)
-	b.status.SetText(progressLine(b.catalog, 0, 0))
+	b.meter = meter{}
+	b.status.SetText(b.meter.line(b.catalog, 0, 0))
 	go func() {
 		err := b.services.Backup(ctx, source, name, func(done, total int64) {
-			b.app.QueueUpdateDraw(func() { b.status.SetText(progressLine(b.catalog, done, total)) })
+			b.app.QueueUpdateDraw(func() { b.status.SetText(b.meter.line(b.catalog, done, total)) })
 		})
 		b.app.QueueUpdateDraw(func() {
 			cancel()

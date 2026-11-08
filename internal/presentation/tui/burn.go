@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -32,6 +33,7 @@ type burnScreen struct {
 	target   *device.Device
 	burning  atomic.Bool
 	cancel   context.CancelFunc
+	meter    meter
 }
 
 func newBurnScreen(
@@ -176,10 +178,11 @@ func (b *burnScreen) start() {
 	b.burning.Store(true)
 	b.updateButton()
 	b.form.GetButton(1).SetDisabled(true)
-	b.status.SetText(b.progressText(0, 0))
+	b.meter = meter{}
+	b.status.SetText(b.meter.line(b.catalog, 0, 0))
 	go func() {
 		result, err := b.services.Burn(ctx, img, target, func(done, total int64) {
-			b.app.QueueUpdateDraw(func() { b.status.SetText(b.progressText(done, total)) })
+			b.app.QueueUpdateDraw(func() { b.status.SetText(b.meter.line(b.catalog, done, total)) })
 		})
 		b.app.QueueUpdateDraw(func() {
 			cancel()
@@ -201,22 +204,39 @@ func (b *burnScreen) start() {
 	}()
 }
 
-func (b *burnScreen) progressText(done, total int64) string {
-	return progressLine(b.catalog, done, total)
+// meter times the transfer for the speed shown next to the progress.
+// It is used only on the UI goroutine.
+type meter struct{ started time.Time }
+
+func (m *meter) line(catalog i18n.Catalog, done, total int64) string {
+	switch {
+	case done < 0:
+		m.started = time.Time{} // a phase change restarts the clock for the next transfer
+	case m.started.IsZero():
+		m.started = time.Now()
+	}
+	return progressLine(catalog, done, total, time.Since(m.started))
 }
 
 // progressLine renders a progress update; done -1 and -2 are the sizing and readback phases.
-func progressLine(catalog i18n.Catalog, done, total int64) string {
-	switch {
-	case done == -1:
+func progressLine(catalog i18n.Catalog, done, total int64, elapsed time.Duration) string {
+	switch done {
+	case -1:
 		return catalog.Burn.Sizing
-	case done == -2:
+	case -2:
 		return catalog.Burn.Verifying
-	case total <= 0:
-		return fmt.Sprintf("%s\n%s", catalog.Size(done), strings.Repeat("░", barWidth))
+	}
+	speed := ""
+	if elapsed >= time.Second {
+		mbps := fmt.Sprintf("%.1f", float64(done)/1e6/elapsed.Seconds())
+		speed = " · " + strings.Replace(mbps, ".", catalog.DecimalSeparator, 1) + " MB/s"
+	}
+	if total <= 0 {
+		return fmt.Sprintf("%s%s\n%s", catalog.Size(done), speed, strings.Repeat("░", barWidth))
 	}
 	done = max(0, done)
 	filled := int(min(done, total) * barWidth / total)
-	return fmt.Sprintf("%d%%  %s / %s\n%s%s", min(done*100/total, 100), catalog.Size(done),
-		catalog.Size(total), strings.Repeat("█", filled), strings.Repeat("░", barWidth-filled))
+	return fmt.Sprintf("%d%%  %s / %s%s\n%s%s", min(done*100/total, 100), catalog.Size(done),
+		catalog.Size(total), speed, strings.Repeat("█", filled),
+		strings.Repeat("░", barWidth-filled))
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 
@@ -237,7 +238,7 @@ func TestBurnProgressClampsOverflow(t *testing.T) {
 	b, sim, _ := openBurn(t, services)
 	burnSelectEMMC(t, b, sim)
 	// The error replaces the progress text, so read the formatter directly.
-	if got := b.progressText(5e9, 4e9); !strings.Contains(got, "100%") {
+	if got := progressLine(i18n.For(i18n.LocaleEN), 5e9, 4e9, 0); !strings.Contains(got, "100%") {
 		t.Fatalf("progress = %q, want 100%%", got)
 	}
 	waitForApp(t, sim.app, func() bool { return simulationContains(sim.screen, "stop") })
@@ -301,5 +302,19 @@ func TestBurnScreenShowsSizingAndVerifyingPhases(t *testing.T) {
 			t.Fatalf("phase text %q not shown", want)
 		}
 		step <- struct{}{}
+	}
+}
+
+func TestProgressLineShowsSpeed(t *testing.T) {
+	for locale, want := range map[i18n.Locale]string{
+		i18n.LocalePtBR: "18,0 MB/s", i18n.LocaleEN: "18.0 MB/s",
+	} {
+		got := progressLine(i18n.For(locale), 180e6, 1e9, 10*time.Second)
+		if !strings.Contains(got, "18% ") || !strings.Contains(got, " · "+want) {
+			t.Errorf("%s progress = %q, want it to contain %q", locale, got, want)
+		}
+	}
+	if got := progressLine(i18n.For(i18n.LocaleEN), 0, 1e9, 0); strings.Contains(got, "MB/s") {
+		t.Errorf("progress before any time passed = %q, want no speed", got)
 	}
 }
