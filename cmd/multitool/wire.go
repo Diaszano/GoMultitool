@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/backup"
@@ -161,19 +162,32 @@ func withWorkspace(
 	return op(ws)
 }
 
-// countingReader reports the bytes read so far to p.
+// countingReader reports the bytes read so far to p, at most once per percent or 200 ms,
+// plus once when the total is reached or the source ends.
 type countingReader struct {
-	r     io.Reader
-	done  int64
-	total int64
-	p     tui.Progress
+	r        io.Reader
+	done     int64
+	total    int64
+	p        tui.Progress
+	reported int64
+	percent  int64
+	at       time.Time
 }
 
 func (c *countingReader) Read(b []byte) (int, error) {
 	n, err := c.r.Read(b)
 	c.done += int64(n)
-	if n > 0 && c.p != nil {
+	if c.p == nil || c.done == c.reported {
+		return n, err
+	}
+	percent := int64(-1)
+	if c.total > 0 {
+		percent = c.done * 100 / c.total
+	}
+	final := err != nil || (c.total > 0 && c.reported < c.total && c.done >= c.total)
+	if final || percent != c.percent || time.Since(c.at) >= 200*time.Millisecond {
 		c.p(c.done, c.total)
+		c.reported, c.percent, c.at = c.done, percent, time.Now()
 	}
 	return n, err
 }

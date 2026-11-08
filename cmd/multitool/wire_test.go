@@ -33,6 +33,27 @@ func TestCountingReaderReportsProgress(t *testing.T) {
 	}
 }
 
+func TestCountingReaderThrottlesProgress(t *testing.T) {
+	const size = 10 << 20
+	var calls int
+	var last [2]int64
+	r := &countingReader{
+		r:     bytes.NewReader(make([]byte, size)),
+		total: size,
+		p: func(done, total int64) {
+			calls++
+			last = [2]int64{done, total}
+		},
+	}
+	if _, err := io.CopyBuffer(struct{ io.Writer }{io.Discard}, struct{ io.Reader }{r},
+		make([]byte, 4096)); err != nil {
+		t.Fatal(err)
+	}
+	if calls > 110 || last != [2]int64{size, size} {
+		t.Fatalf("calls = %d (want <= 110), last = %v (want done == total)", calls, last)
+	}
+}
+
 func TestBackupDestinationRejectsPathNames(t *testing.T) {
 	for _, name := range []string{"", "a/b", ".x", ".."} {
 		if _, err := backupDestination("/mt/backups", name); err == nil {
