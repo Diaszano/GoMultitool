@@ -318,3 +318,18 @@ func TestProgressLineShowsSpeed(t *testing.T) {
 		t.Errorf("progress before any time passed = %q, want no speed", got)
 	}
 }
+
+func TestBurnScreenShowsImageNameLiterally(t *testing.T) {
+	images := func(context.Context) ([]image.Image, error) {
+		return []image.Image{{Path: "/m/images/a [red] b.img.xz", SizeBytes: 2e9}}, nil
+	}
+	_, sim, _ := openBurn(t, Services{Inventory: burnInventory, Images: images})
+	if !waitForApp(t, sim.app, func() bool {
+		return simulationContains(sim.screen, "a [red] b.img.xz  2.0 GB")
+	}) {
+		t.Fatal("image name not rendered literally")
+	}
+	if simulationContains(sim.screen, "/m/images/") {
+		t.Fatal("image row shows the full path, want the file name")
+	}
+}

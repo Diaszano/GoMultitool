@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -119,7 +120,12 @@ func (b *burnScreen) render(derr, ferr error) {
 		if f.SizeBytes > 0 {
 			size = b.catalog.Size(f.SizeBytes)
 		}
-		b.images.AddItem(fmt.Sprintf("%s  %s", f.Path, size), "", 0, nil)
+		b.images.AddItem(
+			fmt.Sprintf("%s  %s", tview.Escape(filepath.Base(f.Path)), size),
+			"",
+			0,
+			nil,
+		)
 	}
 	var notes []string
 	switch {
