@@ -9,7 +9,11 @@ import (
 
 // DeviceLine formats one device as "<path>  <kind>  <size>" plus status labels.
 func (c Catalog) DeviceLine(d device.Device) string {
-	line := fmt.Sprintf("%s  %s  %s", d.Path, c.Kinds[d.Kind], c.Size(d.SizeBytes))
+	kind, ok := c.Kinds[d.Kind]
+	if !ok {
+		kind = c.Kinds[device.KindUnknown]
+	}
+	line := fmt.Sprintf("%s  %s  %s", d.Path, kind, c.Size(d.SizeBytes))
 	if d.Mounted {
 		line += "  · " + c.InUseLabel
 	}

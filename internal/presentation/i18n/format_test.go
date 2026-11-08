@@ -26,3 +26,14 @@ func TestSizeUnderOneGB(t *testing.T) {
 		t.Errorf("Size = %q", got)
 	}
 }
+
+func TestDeviceLineFallsBackToUnknownKind(t *testing.T) {
+	d := device.Device{Path: "/dev/sdz", SizeBytes: 2e9}
+	if got := For(LocalePtBR).DeviceLine(d); got != "/dev/sdz  desconhecido  2,0 GB" {
+		t.Errorf("pt-BR = %q", got)
+	}
+	d.Kind = "weird"
+	if got := For(LocaleEN).DeviceLine(d); got != "/dev/sdz  unknown  2.0 GB" {
+		t.Errorf("en = %q", got)
+	}
+}
