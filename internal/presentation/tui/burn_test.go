@@ -333,3 +333,27 @@ func TestBurnScreenShowsImageNameLiterally(t *testing.T) {
 		t.Fatal("image row shows the full path, want the file name")
 	}
 }
+
+func TestMarkedDeviceLabelsBlockedRows(t *testing.T) {
+	for _, locale := range []i18n.Locale{i18n.LocalePtBR, i18n.LocaleEN} {
+		c := i18n.For(locale)
+		suffix := "  · " + c.NotSelectable
+		for _, d := range []device.Device{
+			{Path: "/dev/mtd0", Kind: device.KindNAND},
+			{Path: "/dev/sdx", Kind: device.KindUnknown},
+		} {
+			if got := markedDevice(c, nil, d); c.NotSelectable == "" ||
+				!strings.HasSuffix(got, suffix) {
+				t.Errorf("%s: row %q, want suffix %q", locale, got, suffix)
+			}
+		}
+		for _, d := range []device.Device{
+			{Path: "/dev/sda", Kind: device.KindUSB, Mounted: true},
+			{Path: "/dev/mmcblk1", Kind: device.KindEMMC},
+		} {
+			if got := markedDevice(c, nil, d); strings.Contains(got, c.NotSelectable) {
+				t.Errorf("%s: row %q must not say not selectable", locale, got)
+			}
+		}
+	}
+}

@@ -54,6 +54,7 @@ type Catalog struct {
 	DeviceChanged    string
 	UnsafeDevice     string
 	ReadbackMismatch string
+	NotSelectable    string
 	OK               string
 	InUseLabel       string
 	BootMediaLabel   string
@@ -120,6 +121,7 @@ func For(locale Locale) Catalog {
 			DeviceChanged:    "The device changed after it was chosen; choose it again.",
 			UnsafeDevice:     "This device cannot be written to.",
 			ReadbackMismatch: "Verification failed: the written data differs from the image. Burn again.",
+			NotSelectable:    "not selectable",
 			OK:               "OK",
 			InUseLabel:       "in use",
 			BootMediaLabel:   "boot media",
@@ -183,6 +185,7 @@ func For(locale Locale) Catalog {
 		DeviceChanged:    "O dispositivo mudou depois de escolhido; escolha de novo.",
 		UnsafeDevice:     "Este dispositivo não pode ser gravado.",
 		ReadbackMismatch: "A conferência falhou: os dados gravados diferem da imagem. Grave de novo.",
+		NotSelectable:    "não selecionável",
 		OK:               "OK",
 		InUseLabel:       "em uso",
 		BootMediaLabel:   "mídia de boot",

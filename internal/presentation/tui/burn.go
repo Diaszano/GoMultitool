@@ -162,10 +162,14 @@ func (b *burnScreen) deviceText(d device.Device) string {
 }
 
 func markedDevice(catalog i18n.Catalog, target *device.Device, d device.Device) string {
-	if target != nil && target.ID == d.ID {
-		return "▶ " + catalog.DeviceLine(d)
+	line := catalog.DeviceLine(d)
+	if blocked(d) && !d.Mounted { // a mounted row already says "in use"
+		line += "  · " + catalog.NotSelectable
 	}
-	return catalog.DeviceLine(d)
+	if target != nil && target.ID == d.ID {
+		return "▶ " + line
+	}
+	return line
 }
 
 func (b *burnScreen) updateButton() {
