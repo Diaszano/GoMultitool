@@ -12,7 +12,7 @@ The script backs up selected MMC devices as gzip streams into `MULTITOOL/backups
 
 The Go application may replace menu presentation, read-only inventory, image inspection, backup/restore orchestration, and diagnostics only as corresponding safeguards and recovery fallbacks are implemented. `create_image.sh`, board boot components, and the existing shell flow remain the fallback until equivalent behavior is validated on the reference hardware. Bootloader, kernel, and TrustZone firmware are preserved as supplied.
 
-The recovery root filesystem now includes the ARMv7 Go executable and an opt-in `multitool-init` entrypoint. The original `sbin/init` remains unchanged and launches the legacy shell menu. From its shell, `MULTITOOL_GO_RUNTIME=1 /usr/local/sbin/multitool-init` starts the Go console for controlled testing. `util-linux` provides the existing `mount`, `blkid`, and `lsblk` commands.
+The recovery root filesystem now includes the ARMv7 Go executable and an opt-in `multitool-init` entrypoint. The original `sbin/init` remains unchanged and launches the legacy shell menu. From its shell, `MULTITOOL_GO_RUNTIME=1 /usr/local/sbin/multitool-init` starts the Go TUI for controlled testing. `util-linux` provides the existing `mount`, `blkid`, and `lsblk` commands.
 
 ## Source and image evidence
 
