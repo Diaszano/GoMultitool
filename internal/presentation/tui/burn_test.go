@@ -276,3 +276,30 @@ func TestBurnScreenMarksSelectedDestination(t *testing.T) {
 		t.Fatalf("rows = %q, %q; only the second may be marked", first, second)
 	}
 }
+
+func TestBurnScreenShowsSizingAndVerifyingPhases(t *testing.T) {
+	step := make(chan struct{})
+	t.Cleanup(func() { close(step) })
+	services := Services{
+		Inventory: burnInventory, Images: burnImages,
+		Burn: func(
+			_ context.Context, _ image.Image, _ device.Device, p Progress,
+		) (installer.BurnResult, error) {
+			p(-1, 0)
+			<-step
+			p(-2, 0)
+			<-step
+			return installer.BurnResult{}, nil
+		},
+	}
+	b, sim, c := openBurn(t, services)
+	burnSelectEMMC(t, b, sim)
+	for _, want := range []string{c.Burn.Sizing, c.Burn.Verifying} {
+		if want == "" || !waitForApp(t, sim.app, func() bool {
+			return simulationContains(sim.screen, want)
+		}) {
+			t.Fatalf("phase text %q not shown", want)
+		}
+		step <- struct{}{}
+	}
+}

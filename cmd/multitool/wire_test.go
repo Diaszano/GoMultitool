@@ -101,3 +101,39 @@ func TestBurnReportsSourceCloseError(t *testing.T) {
 		t.Fatalf("burn error = %v, want the source close error", err)
 	}
 }
+
+func TestBurnSignalsSizingAndVerifyingPhases(t *testing.T) {
+	var calls [][2]int64
+	record := func(done, total int64) { calls = append(calls, [2]int64{done, total}) }
+	missing := image.Image{Path: filepath.Join(t.TempDir(), "none.img.gz"), Format: image.FormatGzip}
+	_, err := burn(context.Background(), fixedCatalog{}, multitool.Workspace{}, missing,
+		device.Device{}, record)
+	if err == nil || len(calls) != 1 || calls[0] != [2]int64{-1, 0} {
+		t.Fatalf("sizing calls = %v, err = %v; want [[-1 0]] then the inspect error", calls, err)
+	}
+
+	calls = nil
+	data := bytes.Repeat([]byte{7}, 4096)
+	path := filepath.Join(t.TempDir(), "target")
+	if err := os.WriteFile(path, make([]byte, 8192), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	original := openImage
+	t.Cleanup(func() { openImage = original })
+	openImage = func(context.Context, string) (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(data)), nil
+	}
+	target := device.Device{
+		ID: "usb", Path: path, Kind: device.KindUSB, SizeBytes: 8192, LogicalSectorSize: 512,
+	}
+	img := image.Image{Path: "a.img", Format: image.FormatRaw, SizeBytes: int64(len(data))}
+	if _, err := burn(
+		context.Background(), fixedCatalog{target}, multitool.Workspace{}, img, target, record,
+	); err != nil {
+		t.Fatal(err)
+	}
+	n := len(calls)
+	if n < 2 || calls[n-2] != [2]int64{4096, 4096} || calls[n-1] != [2]int64{-2, 0} {
+		t.Fatalf("burn calls = %v, want [4096 4096] then [-2 0] at the end", calls)
+	}
+}

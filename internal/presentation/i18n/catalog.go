@@ -74,6 +74,7 @@ type BackupTexts struct {
 type BurnTexts struct {
 	Destination, Images, SizeAtBurn, Warning, Start, Cancel  string
 	Success, CommandRate, NoImages, NoDestination, Cancelled string
+	Sizing, Verifying                                        string
 }
 
 // DetectLocale selects the first supported locale from the standard environment order.
@@ -133,6 +134,8 @@ func For(locale Locale) Catalog {
 				CommandRate:   "The image has no DDR command rate; the previous value was not applied.",
 				NoImages:      "No images in MULTITOOL/images.",
 				NoDestination: "No available destination.",
+				Sizing:        "Computing image size…",
+				Verifying:     "Verifying the written data…",
 			},
 			Backup: BackupTexts{
 				Source:      "Source",
@@ -190,6 +193,8 @@ func For(locale Locale) Catalog {
 			CommandRate:   "A imagem não tem o command rate da DDR; o valor anterior não foi aplicado.",
 			NoImages:      "Nenhuma imagem em MULTITOOL/images.",
 			NoDestination: "Nenhum destino disponível.",
+			Sizing:        "Calculando tamanho da imagem…",
+			Verifying:     "Conferindo a gravação…",
 		},
 		Backup: BackupTexts{
 			Source:      "Origem",

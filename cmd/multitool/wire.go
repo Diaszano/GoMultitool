@@ -83,6 +83,9 @@ func burn(
 	p tui.Progress,
 ) (_ installer.BurnResult, err error) {
 	if img.SizeBytes == 0 {
+		if p != nil {
+			p(-1, 0) // sizing a .gz reads the whole image first
+		}
 		inspected, err := compression.Inspect(ctx, img.Path)
 		if err != nil {
 			return installer.BurnResult{}, err
@@ -106,7 +109,7 @@ func burn(
 			return os.OpenFile(path, os.O_RDWR, 0)
 		},
 		Platform: ws.Platform,
-	}.Run(ctx, plan, &countingReader{r: src, total: img.SizeBytes, p: p})
+	}.Run(ctx, plan, &countingReader{r: src, total: img.SizeBytes, p: p, verifies: true})
 }
 
 func backupTo(
@@ -164,6 +167,7 @@ func withWorkspace(
 
 // countingReader reports the bytes read so far to p, at most once per percent or 200 ms,
 // plus once when the total is reached or the source ends.
+// With verifies, reaching the total also reports p(-2, 0): the readback starts next.
 type countingReader struct {
 	r        io.Reader
 	done     int64
@@ -172,6 +176,7 @@ type countingReader struct {
 	reported int64
 	percent  int64
 	at       time.Time
+	verifies bool
 }
 
 func (c *countingReader) Read(b []byte) (int, error) {
@@ -184,10 +189,14 @@ func (c *countingReader) Read(b []byte) (int, error) {
 	if c.total > 0 {
 		percent = c.done * 100 / c.total
 	}
-	final := err != nil || (c.total > 0 && c.reported < c.total && c.done >= c.total)
-	if final || percent != c.percent || time.Since(c.at) >= 200*time.Millisecond {
+	reachedTotal := c.total > 0 && c.reported < c.total && c.done >= c.total
+	if err != nil || reachedTotal || percent != c.percent ||
+		time.Since(c.at) >= 200*time.Millisecond {
 		c.p(c.done, c.total)
 		c.reported, c.percent, c.at = c.done, percent, time.Now()
+		if reachedTotal && c.verifies {
+			c.p(-2, 0)
+		}
 	}
 	return n, err
 }

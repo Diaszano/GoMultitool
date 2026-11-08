@@ -205,8 +205,14 @@ func (b *burnScreen) progressText(done, total int64) string {
 	return progressLine(b.catalog, done, total)
 }
 
+// progressLine renders a progress update; done -1 and -2 are the sizing and readback phases.
 func progressLine(catalog i18n.Catalog, done, total int64) string {
-	if total <= 0 {
+	switch {
+	case done == -1:
+		return catalog.Burn.Sizing
+	case done == -2:
+		return catalog.Burn.Verifying
+	case total <= 0:
 		return fmt.Sprintf("%s\n%s", catalog.Size(done), strings.Repeat("░", barWidth))
 	}
 	done = max(0, done)
