@@ -51,3 +51,21 @@ func TestListImagesHandlesSpacesAndSkipsOthers(t *testing.T) {
 		t.Fatalf("missing dir = %v, %v", missing, err)
 	}
 }
+
+func TestListImagesSkipsUnreadableImage(t *testing.T) {
+	if _, err := exec.LookPath("xz"); err != nil {
+		t.Skip("xz unavailable")
+	}
+	dir := t.TempDir()
+	for name, data := range map[string][]byte{
+		"bad.img.xz": []byte("not xz"), "good.img": []byte("12345"),
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := ListImages(context.Background(), dir)
+	if err != nil || len(got) != 1 || filepath.Base(got[0].Path) != "good.img" {
+		t.Fatalf("images = %+v, %v; want only good.img", got, err)
+	}
+}

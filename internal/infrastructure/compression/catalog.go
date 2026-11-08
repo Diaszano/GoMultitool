@@ -43,7 +43,7 @@ func Size(ctx context.Context, path string) (int64, error) {
 }
 
 // ListImages returns the regular image files in dir, sorted by name.
-// A missing dir yields an empty list.
+// A missing dir yields an empty list; files whose size cannot be read are skipped.
 func ListImages(ctx context.Context, dir string) ([]image.Image, error) {
 	entries, err := os.ReadDir(dir)
 	if os.IsNotExist(err) {
@@ -63,8 +63,11 @@ func ListImages(ctx context.Context, dir string) ([]image.Image, error) {
 			continue
 		}
 		size, err := Size(ctx, path)
+		if ctxErr := ctx.Err(); ctxErr != nil {
+			return nil, ctxErr
+		}
 		if err != nil {
-			return nil, err
+			continue // one corrupt image must not hide the others
 		}
 		images = append(images, image.Image{Path: path, Format: format, SizeBytes: size})
 	}
