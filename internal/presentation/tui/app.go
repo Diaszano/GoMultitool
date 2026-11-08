@@ -11,8 +11,10 @@ import (
 	"github.com/rivo/tview"
 
 	"github.com/Diaszano/GoMultitool/internal/application/installer"
+	"github.com/Diaszano/GoMultitool/internal/application/storageguard"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 	"github.com/Diaszano/GoMultitool/internal/domain/image"
+	"github.com/Diaszano/GoMultitool/internal/domain/installation"
 	"github.com/Diaszano/GoMultitool/internal/infrastructure/multitool"
 	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 	"github.com/Diaszano/GoMultitool/internal/presentation/tui/screens"
@@ -134,8 +136,16 @@ func withNavigation(p tview.Primitive, catalog i18n.Catalog) tview.Primitive {
 
 // errorText localizes known errors and prefixes the rest.
 func errorText(catalog i18n.Catalog, err error) string {
-	if errors.Is(err, multitool.ErrBusy) {
-		return catalog.Busy
+	for sentinel, text := range map[error]string{
+		multitool.ErrBusy:             catalog.Busy,
+		installation.ErrImageTooLarge: catalog.ImageTooLarge,
+		storageguard.ErrDeviceChanged: catalog.DeviceChanged,
+		device.ErrUnsafeDevice:        catalog.UnsafeDevice,
+		installer.ErrReadbackMismatch: catalog.ReadbackMismatch,
+	} {
+		if errors.Is(err, sentinel) {
+			return text
+		}
 	}
 	return catalog.ErrorPrefix + err.Error()
 }

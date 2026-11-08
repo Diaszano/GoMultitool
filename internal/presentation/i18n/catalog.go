@@ -50,6 +50,10 @@ type Catalog struct {
 	ErrorPrefix      string
 	Loading          string
 	Busy             string
+	ImageTooLarge    string
+	DeviceChanged    string
+	UnsafeDevice     string
+	ReadbackMismatch string
 	OK               string
 	InUseLabel       string
 	BootMediaLabel   string
@@ -112,6 +116,10 @@ func For(locale Locale) Catalog {
 			ErrorPrefix:      "Error: ",
 			Loading:          "Loading…",
 			Busy:             "Another operation is running.",
+			ImageTooLarge:    "The image is larger than the destination.",
+			DeviceChanged:    "The device changed after it was chosen; choose it again.",
+			UnsafeDevice:     "This device cannot be written to.",
+			ReadbackMismatch: "Verification failed: the written data differs from the image. Burn again.",
 			OK:               "OK",
 			InUseLabel:       "in use",
 			BootMediaLabel:   "boot media",
@@ -171,6 +179,10 @@ func For(locale Locale) Catalog {
 		ErrorPrefix:      "Erro: ",
 		Loading:          "Carregando…",
 		Busy:             "Outra operação em andamento.",
+		ImageTooLarge:    "A imagem é maior que o destino.",
+		DeviceChanged:    "O dispositivo mudou depois de escolhido; escolha de novo.",
+		UnsafeDevice:     "Este dispositivo não pode ser gravado.",
+		ReadbackMismatch: "A conferência falhou: os dados gravados diferem da imagem. Grave de novo.",
 		OK:               "OK",
 		InUseLabel:       "em uso",
 		BootMediaLabel:   "mídia de boot",

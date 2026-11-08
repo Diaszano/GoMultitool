@@ -12,7 +12,10 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
+	"github.com/Diaszano/GoMultitool/internal/application/installer"
+	"github.com/Diaszano/GoMultitool/internal/application/storageguard"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
+	"github.com/Diaszano/GoMultitool/internal/domain/installation"
 	"github.com/Diaszano/GoMultitool/internal/infrastructure/multitool"
 	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 )
@@ -323,5 +326,22 @@ func TestErrorTextLocalizesBusy(t *testing.T) {
 	catalog := i18n.For(i18n.LocalePtBR)
 	if got := errorText(catalog, fmt.Errorf("lock: %w", multitool.ErrBusy)); got != catalog.Busy {
 		t.Fatalf("busy text = %q, want %q", got, catalog.Busy)
+	}
+}
+
+func TestErrorTextLocalizesKnownErrors(t *testing.T) {
+	for _, locale := range []i18n.Locale{i18n.LocalePtBR, i18n.LocaleEN} {
+		c := i18n.For(locale)
+		for err, want := range map[error]string{
+			installation.ErrImageTooLarge: c.ImageTooLarge,
+			storageguard.ErrDeviceChanged: c.DeviceChanged,
+			device.ErrUnsafeDevice:        c.UnsafeDevice,
+			installer.ErrReadbackMismatch: c.ReadbackMismatch,
+		} {
+			got := errorText(c, fmt.Errorf("burn: %w", err))
+			if want == "" || got != want {
+				t.Errorf("%s: errorText(%v) = %q, want %q", locale, err, got, want)
+			}
+		}
 	}
 }
