@@ -111,7 +111,9 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 				return nil
 			}
 		}
-		if event.Key() == tcell.KeyRune && strings.EqualFold(string(event.Rune()), "q") {
+		_, typing := app.GetFocus().(*tview.InputField)
+		if !typing && event.Key() == tcell.KeyRune &&
+			strings.EqualFold(string(event.Rune()), "q") {
 			app.Stop()
 			return nil
 		}

@@ -194,3 +194,22 @@ func TestBackupScreenMarksSelectedSource(t *testing.T) {
 		t.Fatalf("wrong row marked: %q", got)
 	}
 }
+
+func TestBackupNameFieldAcceptsQ(t *testing.T) {
+	b, sim, _ := openBackup(t, Services{})
+	sim.app.QueueUpdateDraw(func() {
+		b.name.SetText("")
+		sim.app.SetFocus(b.name)
+	})
+	pressKey(sim.app, tcell.KeyRune, 'q')
+	pressKey(sim.app, tcell.KeyRune, 'Q')
+	select { // checked first: once the app stops, waitForApp would block forever
+	case <-sim.done:
+		t.Fatal("typing q in the name field quit the app")
+	case <-time.After(200 * time.Millisecond):
+	}
+	var name string
+	if !waitForApp(t, sim.app, func() bool { name = b.name.GetText(); return name == "qQ" }) {
+		t.Fatalf("name = %q, want %q", name, "qQ")
+	}
+}
