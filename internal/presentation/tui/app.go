@@ -94,6 +94,10 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 	goHome()
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if burn != nil && !onHome && burn.burning.Load() {
+			if event.Key() == tcell.KeyCtrlC {
+				burn.cancel() // stopping mid-burn would leave the device half-written silently
+				return nil
+			}
 			// Never leave or quit mid-burn.
 			if event.Key() == tcell.KeyEscape || event.Key() == tcell.KeyRune {
 				return nil

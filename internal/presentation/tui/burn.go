@@ -2,6 +2,7 @@ package tui
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync/atomic"
@@ -30,6 +31,7 @@ type burnScreen struct {
 	files    []image.Image
 	target   *device.Device
 	burning  atomic.Bool
+	cancel   context.CancelFunc
 }
 
 func newBurnScreen(
@@ -107,7 +109,7 @@ func (b *burnScreen) render(derr, ferr error) {
 	t := b.catalog.Burn
 	b.dest.Clear()
 	for _, d := range b.devices {
-		b.dest.AddItem(b.catalog.DeviceLine(d), "", 0, nil)
+		b.dest.AddItem(b.deviceText(d), "", 0, nil)
 	}
 	b.images.Clear()
 	for _, f := range b.files {
@@ -139,8 +141,19 @@ func (b *burnScreen) selectDevice(i int) {
 		return
 	}
 	b.target = &b.devices[i]
+	for j, d := range b.devices {
+		b.dest.SetItemText(j, b.deviceText(d), "")
+	}
 	b.status.SetText(fmt.Sprintf(b.catalog.Burn.Warning, b.target.Path))
 	b.updateButton()
+}
+
+// deviceText marks the chosen destination so the cursor position cannot mislead.
+func (b *burnScreen) deviceText(d device.Device) string {
+	if b.target != nil && b.target.ID == d.ID {
+		return "▶ " + b.catalog.DeviceLine(d)
+	}
+	return b.catalog.DeviceLine(d)
 }
 
 func (b *burnScreen) updateButton() {
@@ -154,20 +167,25 @@ func (b *burnScreen) start() {
 		return
 	}
 	img, target := b.files[i], *b.target
+	ctx, cancel := context.WithCancel(context.Background())
+	b.cancel = cancel
 	b.burning.Store(true)
 	b.updateButton()
 	b.form.GetButton(1).SetDisabled(true)
 	b.status.SetText(b.progressText(0, 0))
 	go func() {
-		result, err := b.services.Burn(context.Background(), img, target, func(done, total int64) {
+		result, err := b.services.Burn(ctx, img, target, func(done, total int64) {
 			b.app.QueueUpdateDraw(func() { b.status.SetText(b.progressText(done, total)) })
 		})
 		b.app.QueueUpdateDraw(func() {
+			cancel()
 			b.burning.Store(false)
 			b.form.GetButton(1).SetDisabled(false)
 			b.updateButton()
 			t := b.catalog.Burn
 			switch {
+			case errors.Is(err, context.Canceled):
+				b.status.SetText(t.Cancelled)
 			case err != nil:
 				b.status.SetText(errorText(b.catalog, err))
 			case result.CommandRateNotApplied:
@@ -183,7 +201,8 @@ func (b *burnScreen) progressText(done, total int64) string {
 	if total <= 0 {
 		return fmt.Sprintf("%s\n%s", b.catalog.Size(done), strings.Repeat("░", barWidth))
 	}
-	filled := int(done * barWidth / total)
-	return fmt.Sprintf("%d%%  %s / %s\n%s%s", done*100/total, b.catalog.Size(done),
+	done = max(0, done)
+	filled := int(min(done, total) * barWidth / total)
+	return fmt.Sprintf("%d%%  %s / %s\n%s%s", min(done*100/total, 100), b.catalog.Size(done),
 		b.catalog.Size(total), strings.Repeat("█", filled), strings.Repeat("░", barWidth-filled))
 }

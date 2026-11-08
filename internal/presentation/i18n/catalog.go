@@ -65,8 +65,8 @@ type Catalog struct {
 
 // BurnTexts are the strings of the image burn screen.
 type BurnTexts struct {
-	Destination, Images, SizeAtBurn, Warning, Start, Cancel string
-	Success, CommandRate, NoImages, NoDestination           string
+	Destination, Images, SizeAtBurn, Warning, Start, Cancel  string
+	Success, CommandRate, NoImages, NoDestination, Cancelled string
 }
 
 // DetectLocale selects the first supported locale from the standard environment order.
@@ -121,6 +121,7 @@ func For(locale Locale) Catalog {
 				Warning:       "Everything on %s will be erased.",
 				Start:         "Burn",
 				Cancel:        "Cancel",
+				Cancelled:     "Burn cancelled. The device is incomplete; burn again before using it.",
 				Success:       "Burned and verified. You can power off.",
 				CommandRate:   "The image has no DDR command rate; the previous value was not applied.",
 				NoImages:      "No images in MULTITOOL/images.",
@@ -164,6 +165,7 @@ func For(locale Locale) Catalog {
 			Warning:       "Tudo em %s será apagado.",
 			Start:         "Gravar",
 			Cancel:        "Cancelar",
+			Cancelled:     "Gravação cancelada. O dispositivo ficou incompleto; grave de novo antes de usar.",
 			Success:       "Gravado e conferido. Pode desligar.",
 			CommandRate:   "A imagem não tem o command rate da DDR; o valor anterior não foi aplicado.",
 			NoImages:      "Nenhuma imagem em MULTITOOL/images.",

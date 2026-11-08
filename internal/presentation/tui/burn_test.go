@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
@@ -171,5 +172,107 @@ func TestBurnScreenIgnoresEscWhileBurning(t *testing.T) {
 		func() bool { return simulationContains(sim.screen, "Hardware information") },
 	) {
 		t.Fatal("Esc left the screen while burning")
+	}
+}
+
+func blockingBurn(
+	ctx context.Context, _ image.Image, _ device.Device, p Progress,
+) (installer.BurnResult, error) {
+	p(1e9, 4e9)
+	<-ctx.Done()
+	return installer.BurnResult{}, ctx.Err()
+}
+
+func TestBurnScreenCtrlCCancelsBurn(t *testing.T) {
+	catalog := i18n.For(i18n.LocaleEN)
+	app, list, _ := newApp(
+		Services{Inventory: burnInventory, Images: burnImages, Burn: blockingBurn},
+		catalog,
+	)
+	sim := startSimulation(t, app)
+	app.QueueUpdateDraw(func() { list.SetCurrentItem(0) })
+	pressKey(app, tcell.KeyEnter, 0)
+	if !waitForApp(t, app, func() bool { return simulationContains(sim.screen, "/dev/mmcblk1") }) {
+		t.Fatal("burn screen not shown")
+	}
+	pressKey(app, tcell.KeyDown, 0)
+	pressKey(app, tcell.KeyEnter, 0)
+	waitForApp(t, app, func() bool { return simulationContains(sim.screen, "Everything on") })
+	pressKey(app, tcell.KeyTab, 0)
+	pressKey(app, tcell.KeyTab, 0)
+	pressKey(app, tcell.KeyEnter, 0)
+	if !waitForApp(t, app, func() bool { return simulationContains(sim.screen, "25%") }) {
+		t.Fatal("progress not shown")
+	}
+	pressKey(app, tcell.KeyCtrlC, 0)
+	if !waitForApp(
+		t,
+		app,
+		func() bool { return simulationContains(sim.screen, catalog.Burn.Cancelled) },
+	) {
+		t.Fatal("cancelled text not shown")
+	}
+	if simulationContains(sim.screen, catalog.Burn.Success) {
+		t.Fatal("success shown after cancel")
+	}
+	select {
+	case <-sim.done:
+		t.Fatal("Ctrl-C stopped the app mid-burn")
+	default:
+	}
+	pressKey(app, tcell.KeyCtrlC, 0)
+	waitForDone(t, sim)
+}
+
+func TestBurnProgressClampsOverflow(t *testing.T) {
+	services := Services{
+		Inventory: burnInventory, Images: burnImages,
+		Burn: func(
+			_ context.Context, _ image.Image, _ device.Device, p Progress,
+		) (installer.BurnResult, error) {
+			p(5e9, 4e9)
+			return installer.BurnResult{}, errors.New("stop")
+		},
+	}
+	b, sim, _ := openBurn(t, services)
+	burnSelectEMMC(t, b, sim)
+	// The error replaces the progress text, so read the formatter directly.
+	if got := b.progressText(5e9, 4e9); !strings.Contains(got, "100%") {
+		t.Fatalf("progress = %q, want 100%%", got)
+	}
+	waitForApp(t, sim.app, func() bool { return simulationContains(sim.screen, "stop") })
+}
+
+func TestBurnScreenMarksSelectedDestination(t *testing.T) {
+	inv := func(context.Context) ([]device.Device, error) {
+		return []device.Device{
+			{ID: "a", Path: "/dev/sdb", Kind: device.KindUSB, SizeBytes: 8e9},
+			{ID: "c", Path: "/dev/mmcblk1", Kind: device.KindEMMC, SizeBytes: 4e9},
+		}, nil
+	}
+	b, sim, _ := openBurn(t, Services{Inventory: inv, Images: burnImages})
+	if !waitForApp(
+		t,
+		sim.app,
+		func() bool { return simulationContains(sim.screen, "/dev/mmcblk1") },
+	) {
+		t.Fatal("destinations not shown")
+	}
+	pressKey(sim.app, tcell.KeyEnter, 0)
+	pressKey(sim.app, tcell.KeyDown, 0)
+	pressKey(sim.app, tcell.KeyEnter, 0)
+	if !waitForApp(t, sim.app, func() bool {
+		return simulationContains(sim.screen, "Everything on /dev/mmcblk1")
+	}) {
+		t.Fatal("warning does not name the second device")
+	}
+	var first, second string
+	waitForApp(t, sim.app, func() bool {
+		first, _ = b.dest.GetItemText(0)
+		second, _ = b.dest.GetItemText(1)
+		return true
+	})
+	if strings.Contains(first, "▶") || !strings.HasPrefix(second, "▶ ") {
+		t.Fatalf("rows = %q, %q; only the second may be marked", first, second)
 	}
 }
