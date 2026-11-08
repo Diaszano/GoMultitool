@@ -27,8 +27,8 @@ for file in "$@"; do
 done
 
 if ((${#markdown[@]})); then
-  node "$(go env GOPATH)/node_modules/markdownlint-cli2/markdownlint-cli2-bin.mjs" --config "$root/.markdownlint.yaml" "${markdown[@]}"
+  markdownlint-cli2 --config "$root/.markdownlint.yaml" "${markdown[@]}"
 fi
 if ((${#yaml[@]})); then
-  PYTHONPATH="$(go env GOPATH)/python-tools${PYTHONPATH:+:$PYTHONPATH}" python3 -m yamllint -c "$root/.yamllint.yaml" "${yaml[@]}"
+  yamllint -c "$root/.yamllint.yaml" "${yaml[@]}"
 fi
