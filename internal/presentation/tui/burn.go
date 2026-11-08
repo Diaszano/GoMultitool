@@ -150,10 +150,14 @@ func (b *burnScreen) selectDevice(i int) {
 
 // deviceText marks the chosen destination so the cursor position cannot mislead.
 func (b *burnScreen) deviceText(d device.Device) string {
-	if b.target != nil && b.target.ID == d.ID {
-		return "▶ " + b.catalog.DeviceLine(d)
+	return markedDevice(b.catalog, b.target, d)
+}
+
+func markedDevice(catalog i18n.Catalog, target *device.Device, d device.Device) string {
+	if target != nil && target.ID == d.ID {
+		return "▶ " + catalog.DeviceLine(d)
 	}
-	return b.catalog.DeviceLine(d)
+	return catalog.DeviceLine(d)
 }
 
 func (b *burnScreen) updateButton() {
@@ -198,11 +202,15 @@ func (b *burnScreen) start() {
 }
 
 func (b *burnScreen) progressText(done, total int64) string {
+	return progressLine(b.catalog, done, total)
+}
+
+func progressLine(catalog i18n.Catalog, done, total int64) string {
 	if total <= 0 {
-		return fmt.Sprintf("%s\n%s", b.catalog.Size(done), strings.Repeat("░", barWidth))
+		return fmt.Sprintf("%s\n%s", catalog.Size(done), strings.Repeat("░", barWidth))
 	}
 	done = max(0, done)
 	filled := int(min(done, total) * barWidth / total)
-	return fmt.Sprintf("%d%%  %s / %s\n%s%s", min(done*100/total, 100), b.catalog.Size(done),
-		b.catalog.Size(total), strings.Repeat("█", filled), strings.Repeat("░", barWidth-filled))
+	return fmt.Sprintf("%d%%  %s / %s\n%s%s", min(done*100/total, 100), catalog.Size(done),
+		catalog.Size(total), strings.Repeat("█", filled), strings.Repeat("░", barWidth-filled))
 }

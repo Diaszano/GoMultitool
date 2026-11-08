@@ -147,7 +147,7 @@ func TestTUIKeyboardNavigationBackAndQuit(t *testing.T) {
 func TestBackupOpensPlaceholderAndEscReturns(t *testing.T) {
 	for _, index := range []int{1} {
 		catalog := i18n.For(i18n.LocaleEN)
-		app, list, _ := newApp(Services{}, catalog)
+		app, list, _ := newApp(Services{Inventory: burnInventory, FreeBytes: freeBytes}, catalog)
 		simulation := startSimulation(t, app)
 		app.QueueUpdateDraw(func() { list.SetCurrentItem(index) })
 		pressKey(app, tcell.KeyEnter, 0)

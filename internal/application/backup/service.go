@@ -22,6 +22,9 @@ import (
 // ErrNoSpace indicates the backup partition filled up while writing.
 var ErrNoSpace = errors.New("no space left on backup partition")
 
+// ErrExists indicates the backup output already exists.
+var ErrExists = errors.New("backup already exists")
+
 // dataSink is the writer the gzip stream goes through; tests replace it to inject faults.
 var dataSink = func(f *os.File) io.Writer { return f }
 
@@ -49,7 +52,7 @@ func (Service) Create(
 	manifestPath := destination + ".json"
 	for _, path := range []string{destination, manifestPath} {
 		if _, err := os.Lstat(path); err == nil {
-			return backup.Manifest{}, fmt.Errorf("backup output already exists: %s", path)
+			return backup.Manifest{}, fmt.Errorf("%w: %s", ErrExists, path)
 		} else if !os.IsNotExist(err) {
 			return backup.Manifest{}, err
 		}

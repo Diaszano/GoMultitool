@@ -118,6 +118,9 @@ func TestBackupCancellationAndUnexpectedEOF(t *testing.T) {
 	if _, err := os.Stat(dest + ".json"); !os.IsNotExist(err) {
 		t.Fatalf("manifest exists: %v", err)
 	}
+	if _, err := os.Stat(dest); !os.IsNotExist(err) {
+		t.Fatalf("partial data exists: %v", err)
+	}
 	_, err = (Service{}).Create(
 		context.Background(),
 		device.Device{
@@ -200,5 +203,23 @@ func TestCreateNoSpaceRemovesPartialFiles(t *testing.T) {
 	left, _ := os.ReadDir(dir)
 	if len(left) != 0 {
 		t.Fatalf("leftovers: %v", left)
+	}
+}
+
+func TestBackupExistingOutputIsErrExists(t *testing.T) {
+	dest := filepath.Join(t.TempDir(), "backup.img")
+	if err := os.WriteFile(dest, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	src := device.Device{
+		ID:                "x",
+		Path:              "/dev/x",
+		Kind:              device.KindEMMC,
+		SizeBytes:         512,
+		LogicalSectorSize: 512,
+	}
+	_, err := Service{}.Create(context.Background(), src, bytes.NewReader([]byte("data")), dest)
+	if !errors.Is(err, ErrExists) {
+		t.Fatalf("err = %v, want ErrExists", err)
 	}
 }

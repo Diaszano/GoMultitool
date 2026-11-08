@@ -61,6 +61,13 @@ type Catalog struct {
 	BuildLabel       string
 	Usage            string
 	Burn             BurnTexts
+	Backup           BackupTexts
+}
+
+// BackupTexts are the strings of the backup screen.
+type BackupTexts struct {
+	Source, Name, Free, Start, Cancel, Cancelled  string
+	Saved, InvalidName, NoSpace, Exists, NoSource string
 }
 
 // BurnTexts are the strings of the image burn screen.
@@ -127,6 +134,19 @@ func For(locale Locale) Catalog {
 				NoImages:      "No images in MULTITOOL/images.",
 				NoDestination: "No available destination.",
 			},
+			Backup: BackupTexts{
+				Source:      "Source",
+				Name:        "Name",
+				Free:        "Free on MULTITOOL: %s",
+				Start:       "Back up",
+				Cancel:      "Cancel",
+				Cancelled:   "Backup cancelled. No file was saved.",
+				Saved:       "Backup saved: %s.img.gz",
+				InvalidName: "Invalid name.",
+				NoSpace:     "No space left on the MULTITOOL partition.",
+				Exists:      "A backup with this name already exists.",
+				NoSource:    "No available source.",
+			},
 		}
 	}
 	return Catalog{
@@ -170,6 +190,19 @@ func For(locale Locale) Catalog {
 			CommandRate:   "A imagem não tem o command rate da DDR; o valor anterior não foi aplicado.",
 			NoImages:      "Nenhuma imagem em MULTITOOL/images.",
 			NoDestination: "Nenhum destino disponível.",
+		},
+		Backup: BackupTexts{
+			Source:      "Origem",
+			Name:        "Nome",
+			Free:        "Livre na MULTITOOL: %s",
+			Start:       "Fazer backup",
+			Cancel:      "Cancelar",
+			Cancelled:   "Backup cancelado. Nenhum arquivo foi salvo.",
+			Saved:       "Backup salvo: %s.img.gz",
+			InvalidName: "Nome inválido.",
+			NoSpace:     "Sem espaço na partição MULTITOOL.",
+			Exists:      "Já existe um backup com esse nome.",
+			NoSource:    "Nenhuma origem disponível.",
 		},
 	}
 }

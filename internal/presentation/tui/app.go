@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync/atomic"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -44,6 +45,7 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 	onHome := true
 	var list *tview.List
 	var burn *burnScreen
+	var bak *backupScreen
 	show := func(p tview.Primitive) {
 		onHome = false
 		app.SetRoot(withNavigation(p, catalog), true)
@@ -62,11 +64,9 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 			show(burn.root)
 			burn.load()
 		case i18n.MenuBackup:
-			// Placeholder until the backup screen replaces it.
-			label, _ := list.GetItemText(list.GetCurrentItem())
-			placeholder := tview.NewTextView()
-			placeholder.SetBorder(true).SetTitle(label)
-			show(placeholder)
+			bak = newBackupScreen(app, s, catalog, goHome)
+			show(bak.root)
+			bak.load()
 		case i18n.MenuHardware:
 			hardwareView.SetText(catalog.Loading)
 			show(hardwareView)
@@ -93,12 +93,20 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 	list.SetTitle(catalog.ProductName).SetBorder(true)
 	goHome()
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if burn != nil && !onHome && burn.burning.Load() {
+		var running *atomic.Bool
+		var cancel func()
+		switch {
+		case burn != nil && burn.burning.Load():
+			running, cancel = &burn.burning, burn.cancel
+		case bak != nil && bak.running.Load():
+			running, cancel = &bak.running, bak.cancel
+		}
+		if running != nil && !onHome {
 			if event.Key() == tcell.KeyCtrlC {
-				burn.cancel() // stopping mid-burn would leave the device half-written silently
+				cancel() // stopping mid-operation would leave partial work silently
 				return nil
 			}
-			// Never leave or quit mid-burn.
+			// Never leave or quit mid-operation.
 			if event.Key() == tcell.KeyEscape || event.Key() == tcell.KeyRune {
 				return nil
 			}
