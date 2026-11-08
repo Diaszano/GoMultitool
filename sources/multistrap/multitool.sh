@@ -1034,7 +1034,7 @@ function do_erase_mmc() {
     ERASE_SIZE=${ERASE_SIZE:-"4M"}
     DEVICE_SIZE=$(cat /sys/block/$BLK_DEVICE/size)
     DEVICE_SIZE=$((DEVICE_SIZE / 2)) # convert sectors to kilobytes
-    (set -o pipefail; pv -n -s ${DEVICE_SIZE}K /dev/zero | dd of="/dev/$BLK_DEVICE" iflag=fullblock bs=$ERASE_SIZE oflag=direct 2>/dev/null) 2>&1 | dialog --gauge "Erase is in progress, please wait..." 10 70 0
+    (set -o pipefail; pv -n -S -s ${DEVICE_SIZE}K /dev/zero | dd of="/dev/$BLK_DEVICE" iflag=fullblock bs=$ERASE_SIZE oflag=direct 2>/dev/null) 2>&1 | dialog --gauge "Erase is in progress, please wait..." 10 70 0
 
     ERR=${PIPESTATUS[0]}
 

@@ -39,3 +39,10 @@ if grep -B1 -E 'set -o pipefail; eval' "$script" | grep -q 'count=1'; then
   echo 'pipefail used around a count=1 copy' >&2
   exit 1
 fi
+
+# pv reading /dev/zero never ends on its own; without -S dd hits ENOSPC and pv gets SIGPIPE,
+# so pipefail reports a failed erase even when it succeeded.
+if grep -E 'pv .*/dev/zero' "$script" | grep -vqE 'pv( -[a-zA-Z]+)* -S '; then
+  echo 'pv /dev/zero pipeline without -S (stop at size)' >&2
+  exit 1
+fi
