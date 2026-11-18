@@ -2,11 +2,10 @@
 
 ## Development setup
 
-Install Go 1.27.3 with mise, then install the pinned tools and run the full local checks:
+Install Go 1.27.3 and the pinned tools with mise, then run the full local checks:
 
 ```sh
 mise install
-make setup
 make check
 make security
 ```
