@@ -29,7 +29,7 @@ This project moves exactly that path into the Go binary, makes the Go TUI the sc
      - `.img`: the file size.
      - `.img.xz`: `xz --robot --list`, which reads the exact size from the xz index without decompressing.
      - `.img.gz`: a counting pass (`compression.Inspect`) when the user picks the file, with a "calculando tamanho…" note. The gzip trailer only stores the size modulo 4 GiB, so it isn't used. `.gz` images are rare; Armbian ships `.img.xz`.
-   - Show the warning "Tudo em <dispositivo> será apagado." before writing.
+   - Show the warning `Tudo em <dispositivo> será apagado.` before writing.
    - Progress bar with bytes done/total and speed, updated without freezing the UI.
    - After writing: sync, read back, and compare SHA-256. This is the existing `installer.Writer` behavior.
    - **DDR command rate (rk322x only):** `MULTITOOL/TARGET` contains `rk322x`. Before writing, read the command rate from the destination; after writing, put it back. See "Command rate" below. If it can't be read before writing, skip silently, as Bash does. If it was read, but the new image has no signature or the byte there is not 0/1, the burn still counts as successful and the result screen adds a warning line: "A imagem não tem o command rate da DDR; o valor anterior (1T/2T) não foi aplicado." *(builder's call: the image was written and verified, so this isn't a failure)*. A failed write of the byte itself is an error.
