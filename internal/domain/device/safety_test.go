@@ -30,3 +30,19 @@ func TestDeviceValidateWriteTarget(t *testing.T) {
 		})
 	}
 }
+
+func TestNANDIsNotAWriteTarget(t *testing.T) {
+	d := Device{
+		ID:                "rknand0",
+		Path:              "/dev/rknand0",
+		Kind:              KindNAND,
+		SizeBytes:         1 << 20,
+		LogicalSectorSize: 512,
+	}
+	if err := d.Validate(); err != nil {
+		t.Fatalf("Validate() = %v", err)
+	}
+	if err := d.ValidateWriteTarget(); !errors.Is(err, ErrUnsafeDevice) {
+		t.Fatalf("error = %v", err)
+	}
+}

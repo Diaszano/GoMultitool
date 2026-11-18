@@ -8,9 +8,15 @@ shift
   exit 2
 }
 
+# The legacy menu keeps its original layout, so shfmt skips it (shellcheck still runs).
+fmt_files=()
+for f in "$@"; do
+  [[ "$f" == */multistrap/multitool.sh ]] || fmt_files+=("$f")
+done
+
 case "$mode" in
-  --write) shfmt -w -i 2 -ci -sr "$@" ;;
-  --check) shfmt -d -i 2 -ci -sr "$@" ;;
+  --write) shfmt -w -i 2 -ci -sr "${fmt_files[@]}" ;;
+  --check) shfmt -d -i 2 -ci -sr "${fmt_files[@]}" ;;
   *)
     echo 'usage: check-shell.sh --check|--write [files...]' >&2
     exit 2

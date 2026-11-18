@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
@@ -40,8 +41,10 @@ func TestHardwareJSON(t *testing.T) {
 		"/",
 		catalog,
 		i18n.For(i18n.LocalePtBR),
+		strings.NewReader(""),
 		&out,
 		&stderr,
+		nil,
 	); code != 0 {
 		t.Fatalf("exit = %d, stderr = %s", code, stderr.String())
 	}
@@ -61,8 +64,10 @@ func TestHardwareJSONErrorIsStructured(t *testing.T) {
 		"/",
 		testCatalog{err: errors.New("sysfs unavailable")},
 		i18n.For(i18n.LocalePtBR),
+		strings.NewReader(""),
 		&out,
 		&stderr,
+		nil,
 	); code == 0 {
 		t.Fatal("expected failure")
 	}
@@ -79,16 +84,34 @@ func TestVersionAndUsageUseCatalog(t *testing.T) {
 	for _, locale := range []i18n.Locale{i18n.LocalePtBR, i18n.LocaleEN} {
 		catalog := i18n.For(locale)
 		var out, stderr bytes.Buffer
-		if code := run([]string{"version"}, "/", testCatalog{}, catalog, &out, &stderr); code != 0 {
+		if code := run(
+			[]string{"version"},
+			"/",
+			testCatalog{},
+			catalog,
+			strings.NewReader(""),
+			&out,
+			&stderr,
+			nil,
+		); code != 0 {
 			t.Fatalf("version exit = %d: %s", code, stderr.String())
 		}
-		if !bytes.Contains(out.Bytes(), []byte(catalog.VersionLabel)) ||
+		if !bytes.Contains(out.Bytes(), []byte(catalog.ProductName)) ||
 			!bytes.Contains(out.Bytes(), []byte(catalog.CommitLabel+":")) ||
 			!bytes.Contains(out.Bytes(), []byte(catalog.BuildLabel+":")) {
 			t.Errorf("locale %q version output = %q", locale, out.String())
 		}
 		out.Reset()
-		if code := run(nil, "/", testCatalog{}, catalog, &out, &stderr); code != 2 ||
+		if code := run(
+			nil,
+			"/",
+			testCatalog{},
+			catalog,
+			strings.NewReader(""),
+			&out,
+			&stderr,
+			nil,
+		); code != 2 ||
 			!bytes.Contains(stderr.Bytes(), []byte(catalog.Usage)) {
 			t.Errorf("locale %q usage exit/output = %d/%q", locale, code, stderr.String())
 		}
@@ -104,8 +127,10 @@ func TestJSONOutputDoesNotDependOnLocale(t *testing.T) {
 			"/",
 			testCatalog{devices: []device.Device{{ID: "mmc0"}}},
 			i18n.For(locale),
+			strings.NewReader(""),
 			&out,
 			&stderr,
+			nil,
 		); code != 0 {
 			t.Fatalf("locale %q exit = %d: %s", locale, code, stderr.String())
 		}
@@ -125,8 +150,10 @@ func TestJSONErrorDoesNotDependOnLocale(t *testing.T) {
 			"/",
 			testCatalog{err: errors.New("sysfs unavailable")},
 			i18n.For(locale),
+			strings.NewReader(""),
 			&out,
 			&stderr,
+			nil,
 		)
 		if code != 1 || out.Len() != 0 {
 			t.Fatalf("locale %q exit/stdout = %d/%q", locale, code, out.String())
@@ -151,8 +178,10 @@ func TestJSONEncodeWriteErrorKeepsStableContext(t *testing.T) {
 			"/",
 			testCatalog{devices: []device.Device{{ID: "mmc0"}}},
 			i18n.For(locale),
+			strings.NewReader(""),
 			failedWriter{},
 			&stderr,
+			nil,
 		)
 		if code != 1 || stderr.String() != "encode hardware inventory: broken pipe\n" {
 			t.Errorf("locale %q exit/stderr = %d/%q", locale, code, stderr.String())
@@ -207,8 +236,10 @@ func TestDiagnoseJSON(t *testing.T) {
 		root,
 		testCatalog{},
 		i18n.For(i18n.LocalePtBR),
+		strings.NewReader(""),
 		&out,
 		&stderr,
+		nil,
 	)
 	if code != 0 {
 		t.Fatalf("code=%d stderr=%s", code, stderr.String())
@@ -228,5 +259,24 @@ func TestDiagnoseJSON(t *testing.T) {
 	}
 	if !boot.KernelPresent {
 		t.Fatalf("kernel not reported: %s", got["boot"])
+	}
+}
+
+func TestRunDispatchesTUIAndConsole(t *testing.T) {
+	catalog := i18n.For(i18n.LocalePtBR)
+	calls := 0
+	var out, stderr bytes.Buffer
+	if code := run([]string{"tui"}, "/", testCatalog{}, catalog, strings.NewReader(""),
+		&out, &stderr, func() error { calls++; return nil }); code != 0 || calls != 1 {
+		t.Fatalf("tui code/calls = %d/%d", code, calls)
+	}
+	if code := run([]string{"tui"}, "/", testCatalog{}, catalog, strings.NewReader(""),
+		&out, &stderr, func() error { return errors.New("no tty") }); code != 1 {
+		t.Fatalf("tui error code = %d", code)
+	}
+	out.Reset()
+	if code := run([]string{"--console"}, "/", testCatalog{}, catalog, strings.NewReader("0\n"),
+		&out, &stderr, nil); code != 0 || !strings.Contains(out.String(), catalog.ProductName) {
+		t.Fatalf("console code/out = %d/%q", code, out.String())
 	}
 }

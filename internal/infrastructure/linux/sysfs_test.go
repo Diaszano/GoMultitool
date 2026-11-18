@@ -3,8 +3,11 @@ package linux
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 )
@@ -218,7 +221,7 @@ func busyFixture(t *testing.T, swaps string) (SysfsCatalog, string) {
 		}
 	}
 	copyFixtureBlockDevices(t, sys)
-	return SysfsCatalog{SysRoot: sys, ProcRoot: proc}, sys
+	return SysfsCatalog{SysRoot: sys, ProcRoot: proc, DevRoot: filepath.Join(root, "dev")}, sys
 }
 
 func mountedByID(t *testing.T, c SysfsCatalog) map[string]bool {
@@ -268,5 +271,130 @@ func TestSysfsCatalogMarksHeldPartitionBusy(t *testing.T) {
 	}
 	if !mountedByID(t, c)["mmcblk0"] {
 		t.Fatal("partition with holders not marked busy")
+	}
+}
+
+func addBlockDevice(t *testing.T, sys, name, size string) {
+	t.Helper()
+	dir := filepath.Join(sys, "block", name)
+	if err := os.MkdirAll(filepath.Join(dir, "queue"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "size"), []byte(size+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(dir, "queue", "logical_block_size"),
+		[]byte("512\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSysfsCatalogSkipsPseudoDevices(t *testing.T) {
+	c, sys := busyFixture(t, "")
+	for _, name := range []string{"mmcblk0boot0", "mmcblk0rpmb", "zram0"} {
+		addBlockDevice(t, sys, name, "8192")
+	}
+	addBlockDevice(t, sys, "sdc", "0")
+	for _, bad := range []string{"mmcblk0boot0", "mmcblk0rpmb", "zram0", "sdc"} {
+		if _, ok := mountedByID(t, c)[bad]; ok {
+			t.Errorf("%s was listed", bad)
+		}
+	}
+}
+
+func TestSysfsCatalogClassifiesRknandAsNAND(t *testing.T) {
+	c, sys := busyFixture(t, "")
+	addBlockDevice(t, sys, "rknand0", "8192")
+	got, err := c.List(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range got {
+		if d.ID == "rknand0" {
+			if d.Kind != device.KindNAND {
+				t.Fatalf("kind = %q", d.Kind)
+			}
+			return
+		}
+	}
+	t.Fatal("rknand0 not listed")
+}
+
+func fakeBlkid(t *testing.T, script string) {
+	t.Helper()
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "blkid"), []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin)
+}
+
+func TestSysfsCatalogBlkidTimeoutMeansBootMedia(t *testing.T) {
+	c, _ := busyFixture(t, "")
+	if err := os.WriteFile(
+		filepath.Join(c.ProcRoot, "cmdline"),
+		[]byte("root=PARTUUID=x\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	sleep, err := exec.LookPath("sleep")
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(t.TempDir(), "started")
+	fakeBlkid(t, "#!/bin/sh\n: > "+marker+"\nexec "+sleep+" 5\n")
+	c.BlkidTimeout = time.Second // first exec of a fresh script can take 300ms on macOS
+	start := time.Now()
+	got, err := c.List(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatalf("blkid never started: %v", err)
+	}
+	if time.Since(start) > 2*time.Second {
+		t.Fatalf("List took %v", time.Since(start))
+	}
+	for _, d := range got {
+		if !d.BootMedia {
+			t.Errorf("%s BootMedia = false after blkid timeout", d.ID)
+		}
+	}
+}
+
+func TestSysfsCatalogRunsBlkidOncePerList(t *testing.T) {
+	c, _ := busyFixture(t, "")
+	if err := os.WriteFile(
+		filepath.Join(c.ProcRoot, "cmdline"),
+		[]byte("root=PARTUUID=x\n"),
+		0o644,
+	); err != nil {
+		t.Fatal(err)
+	}
+	counter := filepath.Join(t.TempDir(), "count")
+	fakeBlkid(t, "#!/bin/sh\necho x >> "+counter+"\nprintf '/dev/mmcblk1p3\\n'\n")
+	if _, err := c.List(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	b, err := os.ReadFile(counter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := strings.Count(string(b), "\n"); n != 1 {
+		t.Fatalf("blkid ran %d times, want 1", n)
+	}
+}
+
+func TestSysfsCatalogUnreadableHoldersMeansBusy(t *testing.T) {
+	c, sys := busyFixture(t, "")
+	if err := os.WriteFile(filepath.Join(sys, "block/mmcblk0/holders"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !mountedByID(t, c)["mmcblk0"] {
+		t.Fatal("unreadable holders not treated as busy")
 	}
 }

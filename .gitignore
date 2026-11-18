@@ -12,3 +12,4 @@ sources/multistrap/rootfs/
 !.env.example
 /dist/
 /image-dist/
+/.worktree/

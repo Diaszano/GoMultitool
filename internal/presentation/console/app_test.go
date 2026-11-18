@@ -52,7 +52,11 @@ func TestNumericMenuUsesCatalog(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, want := range []string{catalog.ConsoleTitle, catalog.ConsoleHardwareOption, catalog.ConsoleExitOption, catalog.ConsolePrompt, catalog.InvalidOption, "/dev/mmc0"} {
+			for _, want := range []string{
+				catalog.ProductName, menuLabel(catalog, i18n.MenuHardware),
+				menuLabel(catalog, i18n.MenuExit), catalog.ConsolePrompt, catalog.InvalidOption,
+				catalog.DeviceLine(device.Device{Path: "/dev/mmc0", Kind: device.KindEMMC, SizeBytes: 512}),
+			} {
 				if !strings.Contains(out.String(), want) {
 					t.Errorf("output missing %q: %q", want, out.String())
 				}

@@ -3,11 +3,14 @@ package linux
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 )
@@ -17,6 +20,22 @@ type SysfsCatalog struct {
 	SysRoot  string
 	ProcRoot string
 	DevRoot  string
+	// BlkidTimeout bounds the blkid fallback; zero means 5s.
+	BlkidTimeout time.Duration
+}
+
+var (
+	errSkipDevice = errors.New("skip device")
+	bootPartName  = regexp.MustCompile(`boot[0-9]+$`)
+)
+
+func isPseudoDevice(name string) bool {
+	for _, prefix := range []string{"loop", "ram", "zram"} {
+		if strings.HasPrefix(name, prefix) {
+			return true
+		}
+	}
+	return bootPartName.MatchString(name) || strings.HasSuffix(name, "rpmb")
 }
 
 // List returns the block devices visible in the configured sysfs tree.
@@ -25,15 +44,19 @@ func (c SysfsCatalog) List(ctx context.Context) ([]device.Device, error) {
 	if err != nil {
 		return nil, err
 	}
+	state := c.snapshot(ctx)
 	var devices []device.Device
 	for _, entry := range entries {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		if strings.HasPrefix(entry.Name(), "loop") || strings.HasPrefix(entry.Name(), "ram") {
+		if isPseudoDevice(entry.Name()) {
 			continue
 		}
-		d, err := c.readDevice(entry.Name())
+		d, err := c.readDevice(entry.Name(), state)
+		if errors.Is(err, errSkipDevice) {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -59,11 +82,14 @@ func (c SysfsCatalog) Resolve(ctx context.Context, path string) (device.Device, 
 	return device.Device{}, fmt.Errorf("device %q not found", path)
 }
 
-func (c SysfsCatalog) readDevice(name string) (device.Device, error) {
+func (c SysfsCatalog) readDevice(name string, s hostState) (device.Device, error) {
 	root := filepath.Join(c.SysRoot, "block", name)
 	sectors, err := readInt(filepath.Join(root, "size"))
 	if err != nil {
 		return device.Device{}, fmt.Errorf("read %s size: %w", name, err)
+	}
+	if sectors == 0 {
+		return device.Device{}, errSkipDevice
 	}
 	sectorSize, err := readInt(filepath.Join(root, "queue", "logical_block_size"))
 	if err != nil {
@@ -78,8 +104,8 @@ func (c SysfsCatalog) readDevice(name string) (device.Device, error) {
 		Removable:         strings.TrimSpace(string(removable)) == "1",
 	}
 	d.Kind = c.classify(root, d.Removable)
-	d.Mounted = c.isBusy(name, d.Path)
-	d.BootMedia = c.isBootMedia(d.Path)
+	d.Mounted = c.isBusy(name, d.Path, s)
+	d.BootMedia = c.isBootMedia(d.Path, s)
 	return d, nil
 }
 
@@ -93,6 +119,9 @@ func (c SysfsCatalog) classify(root string, removable bool) device.Kind {
 		case "SD":
 			return device.KindSD
 		}
+	}
+	if strings.HasPrefix(filepath.Base(root), "rknand") {
+		return device.KindNAND
 	}
 	transport, _ := os.ReadFile(filepath.Join(root, "device", "transport"))
 	if strings.EqualFold(strings.TrimSpace(string(transport)), "usb") {

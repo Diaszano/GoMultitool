@@ -1,66 +1,123 @@
 package tui
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
+	"github.com/Diaszano/GoMultitool/internal/application/installer"
+	"github.com/Diaszano/GoMultitool/internal/application/storageguard"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
+	"github.com/Diaszano/GoMultitool/internal/domain/installation"
+	"github.com/Diaszano/GoMultitool/internal/infrastructure/multitool"
 	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 )
 
-func TestMenuShowsAllAreasAndOnlyHardwareRuns(t *testing.T) {
-	for _, locale := range []i18n.Locale{i18n.LocalePtBR, i18n.LocaleEN} {
+func TestMenuShowsFiveItems(t *testing.T) {
+	want := map[i18n.Locale][5][2]string{
+		i18n.LocalePtBR: {
+			{"Gravar imagem no eMMC", "Instalar Armbian ou outra imagem"},
+			{"Fazer backup", "Salvar o eMMC na partição MULTITOOL"},
+			{"Informações de hardware", "Ver dispositivos de armazenamento conectados"},
+			{"Menu antigo (Bash)", "Restaurar, apagar, steP-nand"},
+			{"Sair", "Fechar o GoMultitool"},
+		},
+		i18n.LocaleEN: {
+			{"Burn image to eMMC", "Install Armbian or another image"},
+			{"Back up", "Save the eMMC to the MULTITOOL partition"},
+			{"Hardware information", "Inspect connected storage devices"},
+			{"Legacy menu (Bash)", "Restore, erase, steP-nand"},
+			{"Exit", "Leave GoMultitool"},
+		},
+	}
+	for locale, items := range want {
 		t.Run(string(locale), func(t *testing.T) {
-			calls := 0
-			app, list, _ := newApp(func() ([]device.Device, error) {
-				calls++
-				return []device.Device{{ID: "mmc0", Path: "/dev/mmc0", SizeBytes: 512}}, nil
-			}, i18n.For(locale))
-			if list.GetItemCount() != 10 {
-				t.Fatalf("menu entries = %d, want 10", list.GetItemCount())
+			_, list, _ := newApp(Services{}, i18n.For(locale))
+			if list.GetItemCount() != 5 {
+				t.Fatalf("menu entries = %d, want 5", list.GetItemCount())
 			}
-			for i, item := range i18n.For(locale).Menu {
+			for i, item := range items {
 				label, hint := list.GetItemText(i)
-				if label != item.Label || hint != item.Hint {
-					t.Errorf(
-						"menu item %d = (%q, %q), want (%q, %q)",
-						i,
-						label,
-						hint,
-						item.Label,
-						item.Hint,
-					)
+				if label != item[0] || hint != item[1] {
+					t.Errorf("item %d = (%q, %q), want (%q, %q)", i, label, hint, item[0], item[1])
 				}
-			}
-			for i := 1; i < 9; i++ {
-				if callback := list.GetItemSelectedFunc(i); callback != nil {
-					callback()
-				}
-			}
-			if calls != 0 {
-				t.Fatalf("future menu items invoked hardware %d times", calls)
-			}
-			list.GetItemSelectedFunc(0)()
-			if calls != 1 {
-				t.Fatalf("hardware action calls = %d, want 1", calls)
-			}
-			if app == nil {
-				t.Fatal("tview application is nil")
 			}
 		})
 	}
 }
 
-func TestTUIKeyboardNavigationBackAndQuit(t *testing.T) {
+func TestHardwareLoadsAsyncAndStaysResponsive(t *testing.T) {
+	release := make(chan struct{})
+	t.Cleanup(func() { close(release) })
+	services := Services{Inventory: func(context.Context) ([]device.Device, error) {
+		<-release
+		return nil, nil
+	}}
+	app, list, _ := newApp(services, i18n.For(i18n.LocalePtBR))
+	simulation := startSimulation(t, app)
+	app.QueueUpdateDraw(func() { list.SetCurrentItem(hardwareIndex) })
+	pressKey(app, tcell.KeyEnter, 0)
+	if !waitForApp(t, app, func() bool {
+		return simulationContains(simulation.screen, "Carregando…")
+	}) {
+		t.Fatal("loading text was not shown while the inventory blocks")
+	}
+	pressKey(app, tcell.KeyRune, 'q')
+	waitForDone(t, simulation)
+}
+
+func TestLegacyItemRunsBash(t *testing.T) {
 	calls := 0
-	app, list, hardware := newApp(func() ([]device.Device, error) {
+	app, list, _ := newApp(Services{RunLegacy: func() error {
 		calls++
-		return []device.Device{{ID: "mmc0", Path: "/dev/mmc0"}}, nil
+		return nil
+	}}, i18n.For(i18n.LocaleEN))
+	simulation := startSimulation(t, app)
+	app.QueueUpdateDraw(func() { list.SetCurrentItem(legacyIndex) })
+	pressKey(app, tcell.KeyEnter, 0)
+	if !waitForApp(t, app, func() bool {
+		return calls == 1 && simulationContains(simulation.screen, "Legacy menu (Bash)")
+	}) {
+		t.Fatalf("legacy calls = %d, want 1 and the menu drawn again", calls)
+	}
+}
+
+func TestLegacyErrorShowsModal(t *testing.T) {
+	app, list, _ := newApp(Services{RunLegacy: func() error {
+		return errors.New("multitool.sh missing")
+	}}, i18n.For(i18n.LocaleEN))
+	simulation := startSimulation(t, app)
+	app.QueueUpdateDraw(func() { list.SetCurrentItem(legacyIndex) })
+	pressKey(app, tcell.KeyEnter, 0)
+	if !waitForApp(t, app, func() bool {
+		// The modal wraps the text, so match the start of it.
+		return simulationContains(simulation.screen, "Error: multitool.sh")
+	}) {
+		t.Fatal("legacy error was not shown")
+	}
+	pressKey(app, tcell.KeyEnter, 0)
+	if !waitForApp(t, app, func() bool {
+		return !simulationContains(simulation.screen, "Error: multitool.sh") &&
+			simulationContains(simulation.screen, "Hardware information")
+	}) {
+		t.Fatal("dismissing the modal did not return to the menu")
+	}
+}
+
+func TestTUIKeyboardNavigationBackAndQuit(t *testing.T) {
+	var calls atomic.Int32
+	app, list, hardware := newApp(Services{
+		Inventory: func(context.Context) ([]device.Device, error) {
+			calls.Add(1)
+			return []device.Device{{ID: "mmc0", Path: "/dev/mmc0"}}, nil
+		},
 	}, i18n.For(i18n.LocaleEN))
 	simulation := startSimulation(t, app)
 	if !simulationContains(simulation.screen, "GoMultitool") {
@@ -69,34 +126,46 @@ func TestTUIKeyboardNavigationBackAndQuit(t *testing.T) {
 
 	pressKey(app, tcell.KeyDown, 0)
 	waitForApp(t, app, func() bool { return list.GetCurrentItem() == 1 })
-	pressKey(app, tcell.KeyEnter, 0)
 	pressKey(app, tcell.KeyDown, 0)
-	waitForApp(t, app, func() bool { return list.GetCurrentItem() == 2 })
-	if !waitForApp(t, app, func() bool {
-		return calls == 0 && simulationContains(simulation.screen, "GoMultitool")
-	}) {
-		t.Fatalf("future item changed screen or invoked hardware: calls=%d", calls)
-	}
-
-	pressKey(app, tcell.KeyHome, 0)
-	waitForApp(t, app, func() bool { return list.GetCurrentItem() == 0 })
+	waitForApp(t, app, func() bool { return list.GetCurrentItem() == hardwareIndex })
 	pressKey(app, tcell.KeyEnter, 0)
-	waitForApp(t, app, func() bool {
-		return calls == 1 && strings.Contains(hardware.GetText(false), "/dev/mmc0")
-	})
 	if !waitForApp(t, app, func() bool {
-		return simulationContains(simulation.screen, "Storage devices")
+		return calls.Load() == 1 && strings.Contains(hardware.GetText(false), "/dev/mmc0") &&
+			simulationContains(simulation.screen, "Storage devices")
 	}) {
 		t.Fatal("hardware screen was not drawn")
 	}
 
 	pressKey(app, tcell.KeyEscape, 0)
-	waitForApp(t, app, func() bool {
+	if !waitForApp(t, app, func() bool {
 		return simulationContains(simulation.screen, "GoMultitool") &&
 			!simulationContains(simulation.screen, "Storage devices")
-	})
+	}) {
+		t.Fatal("Esc did not return to the menu")
+	}
 	pressKey(app, tcell.KeyRune, 'q')
 	waitForDone(t, simulation)
+}
+
+func TestBackupOpensPlaceholderAndEscReturns(t *testing.T) {
+	for _, index := range []int{1} {
+		catalog := i18n.For(i18n.LocaleEN)
+		app, list, _ := newApp(Services{Inventory: burnInventory, FreeBytes: freeBytes}, catalog)
+		simulation := startSimulation(t, app)
+		app.QueueUpdateDraw(func() { list.SetCurrentItem(index) })
+		pressKey(app, tcell.KeyEnter, 0)
+		if !waitForApp(t, app, func() bool {
+			return !simulationContains(simulation.screen, "Hardware information")
+		}) {
+			t.Fatalf("item %d did not leave the menu", index)
+		}
+		pressKey(app, tcell.KeyEscape, 0)
+		if !waitForApp(t, app, func() bool {
+			return simulationContains(simulation.screen, "Hardware information")
+		}) {
+			t.Fatalf("Esc on item %d did not return to the menu", index)
+		}
+	}
 }
 
 func TestTUIExitAndCtrlCStopApplication(t *testing.T) {
@@ -111,16 +180,22 @@ func TestTUIExitAndCtrlCStopApplication(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app, list, _ := newApp(nil, i18n.For(i18n.LocaleEN))
+			app, list, _ := newApp(Services{}, i18n.For(i18n.LocaleEN))
 			simulation := startSimulation(t, app)
 			if tt.exit {
-				app.QueueUpdateDraw(func() { list.SetCurrentItem(9) })
+				app.QueueUpdateDraw(func() { list.SetCurrentItem(exitIndex) })
 			}
 			pressKey(app, tt.key, tt.rune)
 			waitForDone(t, simulation)
 		})
 	}
 }
+
+const (
+	hardwareIndex = 2
+	legacyIndex   = 3
+	exitIndex     = 4
+)
 
 type appSimulation struct {
 	app    *tview.Application
@@ -208,38 +283,65 @@ func TestHardwareScreenShowsInventoryEmptyAndError(t *testing.T) {
 			devices: []device.Device{{
 				ID: "mmc0", Path: "/dev/mmc0", Kind: device.KindEMMC, SizeBytes: 512,
 			}},
-			contains: "/dev/mmc0",
+			contains: "/dev/mmc0  eMMC  0 MB",
 		},
-		{name: "empty", contains: "Nenhum dispositivo encontrado."},
-		{name: "error", err: errors.New("sysfs unavailable"), contains: "sysfs unavailable"},
+		{name: "empty"},
+		{name: "error", err: errors.New("sysfs unavailable")},
 	}
 	for _, locale := range []i18n.Locale{i18n.LocalePtBR, i18n.LocaleEN} {
 		catalog := i18n.For(locale)
 		for _, tt := range tests {
 			t.Run(string(locale)+"/"+tt.name, func(t *testing.T) {
-				_, list, hardware := newApp(
-					func() ([]device.Device, error) { return tt.devices, tt.err },
-					catalog,
-				)
-				list.GetItemSelectedFunc(0)()
-				got := hardware.GetText(false)
+				app, list, hardware := newApp(Services{
+					Inventory: func(context.Context) ([]device.Device, error) {
+						return tt.devices, tt.err
+					},
+				}, catalog)
+				startSimulation(t, app)
+				app.QueueUpdateDraw(func() { list.SetCurrentItem(hardwareIndex) })
+				pressKey(app, tcell.KeyEnter, 0)
 				want := tt.contains
-				if tt.name == "empty" {
+				switch tt.name {
+				case "empty":
 					want = catalog.EmptyInventory
+				case "error":
+					want = catalog.ErrorPrefix + tt.err.Error()
 				}
-				if !strings.Contains(got, want) {
+				var got string
+				if !waitForApp(t, app, func() bool {
+					got = hardware.GetText(false)
+					return strings.Contains(got, want)
+				}) {
 					t.Fatalf("hardware text = %q, want it to contain %q", got, want)
 				}
-				if tt.name == "empty" && got != catalog.EmptyInventory {
-					t.Errorf("empty text = %q, want %q", got, catalog.EmptyInventory)
-				}
-				if tt.err != nil && got != catalog.ErrorPrefix+tt.err.Error() {
-					t.Errorf("error text = %q, want localized context and raw error", got)
-				}
-				if tt.name == "empty" && got == catalog.ErrorPrefix+"sysfs unavailable" {
-					t.Fatal("empty inventory and error states were not distinguished")
+				if tt.name != "inventory" && got != want {
+					t.Errorf("text = %q, want exactly %q", got, want)
 				}
 			})
+		}
+	}
+}
+
+func TestErrorTextLocalizesBusy(t *testing.T) {
+	catalog := i18n.For(i18n.LocalePtBR)
+	if got := errorText(catalog, fmt.Errorf("lock: %w", multitool.ErrBusy)); got != catalog.Busy {
+		t.Fatalf("busy text = %q, want %q", got, catalog.Busy)
+	}
+}
+
+func TestErrorTextLocalizesKnownErrors(t *testing.T) {
+	for _, locale := range []i18n.Locale{i18n.LocalePtBR, i18n.LocaleEN} {
+		c := i18n.For(locale)
+		for err, want := range map[error]string{
+			installation.ErrImageTooLarge: c.ImageTooLarge,
+			storageguard.ErrDeviceChanged: c.DeviceChanged,
+			device.ErrUnsafeDevice:        c.UnsafeDevice,
+			installer.ErrReadbackMismatch: c.ReadbackMismatch,
+		} {
+			got := errorText(c, fmt.Errorf("burn: %w", err))
+			if want == "" || got != want {
+				t.Errorf("%s: errorText(%v) = %q, want %q", locale, err, got, want)
+			}
 		}
 	}
 }

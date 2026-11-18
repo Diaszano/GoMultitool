@@ -75,3 +75,26 @@ func TestInspectRejectsTruncatedXZ(t *testing.T) {
 		t.Fatal("truncated XZ accepted")
 	}
 }
+
+const fixtures = "../../../tests/fixtures/images/"
+
+func TestOpenGzipStreamsImage(t *testing.T) {
+	r, err := Open(context.Background(), fixtures+"sample.img.gz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Close(); err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.ReadFile(fixtures + "sample.img")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(want) {
+		t.Fatalf("content = %q", got)
+	}
+}

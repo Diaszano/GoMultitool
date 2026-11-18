@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"errors"
 	"io"
 )
 
@@ -23,8 +22,8 @@ func ContextReader(ctx context.Context, r io.Reader) io.Reader { return contextR
 
 // CopyExact copies exactly size bytes and reports a short source as io.ErrUnexpectedEOF.
 func CopyExact(ctx context.Context, dst io.Writer, src io.Reader, size int64) error {
-	_, err := io.CopyN(dst, ContextReader(ctx, src), size)
-	if errors.Is(err, io.EOF) {
+	n, err := io.Copy(dst, io.LimitReader(ContextReader(ctx, src), size))
+	if err == nil && n < size {
 		return io.ErrUnexpectedEOF
 	}
 	return err
