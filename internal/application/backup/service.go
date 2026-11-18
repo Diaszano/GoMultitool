@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/domain/backup"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
 )
@@ -52,35 +53,14 @@ func (Service) Create(
 	tmpName := dataTmp.Name()
 	defer func() { _ = os.Remove(tmpName) }()
 	hash := sha256.New()
-	buf := make([]byte, 32*1024)
-	remaining := source.SizeBytes
-	for remaining > 0 {
-		if err := ctx.Err(); err != nil {
-			_ = dataTmp.Close()
-			return backup.Manifest{}, err
-		}
-		want := int64(len(buf))
-		if remaining < want {
-			want = remaining
-		}
-		n, readErr := io.ReadFull(src, buf[:want])
-		if n > 0 {
-			written, err := dataTmp.Write(buf[:n])
-			if err != nil {
-				_ = dataTmp.Close()
-				return backup.Manifest{}, err
-			}
-			if written != n {
-				_ = dataTmp.Close()
-				return backup.Manifest{}, io.ErrShortWrite
-			}
-			_, _ = hash.Write(buf[:n])
-			remaining -= int64(n)
-		}
-		if readErr != nil {
-			_ = dataTmp.Close()
-			return backup.Manifest{}, readErr
-		}
+	if err := application.CopyExact(
+		ctx,
+		io.MultiWriter(dataTmp, hash),
+		src,
+		source.SizeBytes,
+	); err != nil {
+		_ = dataTmp.Close()
+		return backup.Manifest{}, err
 	}
 	if err := ctx.Err(); err != nil {
 		_ = dataTmp.Close()
@@ -128,6 +108,18 @@ func (Service) Create(
 	}
 	if err := os.Rename(manifestTmpName, manifestPath); err != nil {
 		_ = os.Remove(destination)
+		return backup.Manifest{}, err
+	}
+	// Persist both renames before callers overwrite the source device.
+	d, err := os.Open(dir)
+	if err != nil {
+		return backup.Manifest{}, err
+	}
+	if err := d.Sync(); err != nil {
+		_ = d.Close()
+		return backup.Manifest{}, err
+	}
+	if err := d.Close(); err != nil {
 		return backup.Manifest{}, err
 	}
 	return manifest, nil

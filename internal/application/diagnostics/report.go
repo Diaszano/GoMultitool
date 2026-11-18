@@ -44,6 +44,7 @@ func CollectBootReport(root, cmdline string) BootReport {
 		_ = f.Close()
 	}
 	boot := InspectBootAssets(filepath.Join(root, "boot"))
+	r.KernelPresent, r.ExtlinuxConfigPresent = boot.KernelPresent, boot.ExtlinuxConfigPresent
 	r.Missing = append(r.Missing, boot.Missing...)
 	for _, item := range boot.Observations {
 		r.Observations = append(r.Observations, "/boot: "+item)

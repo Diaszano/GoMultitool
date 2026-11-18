@@ -9,6 +9,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/storageguard"
 	"github.com/Diaszano/GoMultitool/internal/domain/backup"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
@@ -61,7 +62,7 @@ func TestRestoreRejectsInvalidManifestBeforeOpeningTarget(t *testing.T) {
 		storageguard.Plan{},
 		false,
 		storageguard.Guard{},
-		func(string) (Target, error) { opened = true; return nil, nil },
+		func(string) (application.Target, error) { opened = true; return nil, nil },
 	)
 	if err == nil || opened {
 		t.Fatalf("error=%v, opened=%v", err, opened)
@@ -94,7 +95,7 @@ func TestRestoreRejectsTruncatedBackup(t *testing.T) {
 		storageguard.Plan{Device: testDevice()},
 		true,
 		testGuard(),
-		func(string) (Target, error) { opened = true; return nil, nil },
+		func(string) (application.Target, error) { opened = true; return nil, nil },
 	)
 	if err == nil || opened {
 		t.Fatalf("error=%v, opened=%v", err, opened)
@@ -122,7 +123,7 @@ func TestRestoreWritesOnlyAfterVerification(t *testing.T) {
 		storageguard.Plan{Device: testDevice()},
 		true,
 		testGuard(),
-		func(got string) (Target, error) {
+		func(got string) (application.Target, error) {
 			opened = true
 			if got != testDevice().Path {
 				t.Fatalf("path=%q", got)
@@ -157,7 +158,7 @@ func TestRestoreRejectsSmallTargetBeforeOpening(t *testing.T) {
 		storageguard.Plan{Device: dev},
 		true,
 		testGuard(),
-		func(string) (Target, error) { opened = true; return nil, nil },
+		func(string) (application.Target, error) { opened = true; return nil, nil },
 	)
 	if err == nil || opened {
 		t.Fatalf("error=%v, opened=%v", err, opened)
@@ -187,7 +188,7 @@ func TestRestoreRevalidatesIdentityAfterOpening(t *testing.T) {
 		plan,
 		true,
 		guard,
-		func(string) (Target, error) { catalog.current.ID = "replacement"; return target, nil },
+		func(string) (application.Target, error) { catalog.current.ID = "replacement"; return target, nil },
 	)
 	if !errors.Is(err, storageguard.ErrDeviceChanged) {
 		t.Fatalf("error=%v", err)

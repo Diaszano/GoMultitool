@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/Diaszano/GoMultitool/internal/application"
 	"github.com/Diaszano/GoMultitool/internal/application/diagnostics"
@@ -43,11 +44,12 @@ func main() {
 		}
 		return
 	}
-	os.Exit(run(os.Args[1:], devices, messages, os.Stdout, os.Stderr))
+	os.Exit(run(os.Args[1:], "/", devices, messages, os.Stdout, os.Stderr))
 }
 
 func run(
 	args []string,
+	root string,
 	devices application.DeviceCatalog,
 	messages i18n.Catalog,
 	stdout, stderr io.Writer,
@@ -77,23 +79,17 @@ func run(
 		return encodeJSON(stdout, stderr, "encode hardware inventory", inventory)
 	}
 	if len(args) == 2 && args[0] == "diagnose" && args[1] == "--json" {
-		cmdline, err := os.ReadFile("/proc/cmdline")
+		cmdline, err := os.ReadFile(filepath.Join(root, "proc/cmdline"))
 		if err != nil {
 			_ = json.NewEncoder(stderr).Encode(map[string]string{"error": err.Error()})
 			return 1
 		}
-		boot := diagnostics.CollectBootReport("/", string(cmdline))
+		boot := diagnostics.CollectBootReport(root, string(cmdline))
 		network := diagnostics.CollectNetworkReport()
-		_, available, err := linuxsys.ReadJournal("/var/log/syslog", 64*1024)
-		if err != nil {
-			_ = json.NewEncoder(stderr).Encode(map[string]string{"error": err.Error()})
-			return 1
-		}
 		report := struct {
-			Boot             diagnostics.BootReport    `json:"boot"`
-			Network          diagnostics.NetworkReport `json:"network"`
-			JournalAvailable bool                      `json:"journal_available"`
-		}{boot, network, available}
+			Boot    diagnostics.BootReport    `json:"boot"`
+			Network diagnostics.NetworkReport `json:"network"`
+		}{boot, network}
 		return encodeJSON(stdout, stderr, "encode diagnostics", report)
 	}
 	_, _ = fmt.Fprintln(stderr, messages.Usage)

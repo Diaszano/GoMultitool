@@ -1,6 +1,7 @@
 package imageconfig
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -28,7 +29,7 @@ func TestMemoryPresetPriorityAndIdempotentArtifact(t *testing.T) {
 	if err != nil || string(a.Data) != string(b.Data) || a.Data == nil {
 		t.Fatalf("not idempotent: %q %q err=%v", a.Data, b.Data, err)
 	}
-	if a.Priority != 10 || a.Warning == "" {
+	if !strings.Contains(string(a.Data), "Priority=10") || a.Warning == "" {
 		t.Fatalf("preset=%+v", a)
 	}
 }

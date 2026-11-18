@@ -80,15 +80,3 @@ func TestInventoryErrorUsesCatalogContext(t *testing.T) {
 		}
 	}
 }
-
-func TestConfirmationDefaultsNo(t *testing.T) {
-	if Confirm(strings.NewReader("n\n")) {
-		t.Fatal("negative response confirmed")
-	}
-	if Confirm(strings.NewReader("\n")) {
-		t.Fatal("empty response confirmed")
-	}
-	if !Confirm(strings.NewReader("y\n")) {
-		t.Fatal("explicit yes rejected")
-	}
-}

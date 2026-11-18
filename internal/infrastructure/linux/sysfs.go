@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -40,7 +39,6 @@ func (c SysfsCatalog) List(ctx context.Context) ([]device.Device, error) {
 		}
 		devices = append(devices, d)
 	}
-	sort.Slice(devices, func(i, j int) bool { return devices[i].ID < devices[j].ID })
 	return devices, nil
 }
 
@@ -80,7 +78,7 @@ func (c SysfsCatalog) readDevice(name string) (device.Device, error) {
 		Removable:         strings.TrimSpace(string(removable)) == "1",
 	}
 	d.Kind = c.classify(root, d.Removable)
-	d.Mounted = c.isMounted(d.Path)
+	d.Mounted = c.isBusy(name, d.Path)
 	d.BootMedia = c.isBootMedia(d.Path)
 	return d, nil
 }

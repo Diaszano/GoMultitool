@@ -26,8 +26,7 @@ type File struct {
 
 // Artifacts contains files to install into an offline root filesystem.
 type Artifacts struct {
-	FirstBoot []byte
-	Files     map[string]File
+	Files map[string]File
 }
 
 // LoadCompatibility reads the checked-in JSON-compatible YAML profile.
@@ -69,15 +68,17 @@ func Render(profile Compatibility, version string, p Preset) (Artifacts, error) 
 	}
 	files := map[string]File{
 		"root/.not_logged_in_yet": {Data: b.Bytes(), Mode: 0o600},
-		"etc/hostname":            {Data: []byte(p.Hostname + "\n"), Mode: 0o600},
+		"etc/hostname":            {Data: []byte(p.Hostname + "\n"), Mode: 0o644},
 	}
 	if p.SSHAuthorizedKey != "" {
-		files["home/"+p.UserName+"/.ssh/authorized_keys"] = File{
+		// adduser copies /etc/skel into the new home, so the first-boot user owns the key.
+		// shortcut: every user created later also gets this key; switch to a first-boot chown if multi-user images matter.
+		files["etc/skel/.ssh/authorized_keys"] = File{
 			Data: []byte(p.SSHAuthorizedKey + "\n"),
 			Mode: 0o600,
 		}
 	}
-	return Artifacts{FirstBoot: b.Bytes(), Files: files}, nil
+	return Artifacts{Files: files}, nil
 }
 
 func quote(value string) string {

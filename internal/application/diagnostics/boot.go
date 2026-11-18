@@ -8,10 +8,10 @@ import (
 
 // BootReport lists observed boot assets and missing expected files.
 type BootReport struct {
-	ExtlinuxConfigPresent bool
-	KernelPresent         bool
-	Observations          []string
-	Missing               []string
+	ExtlinuxConfigPresent bool     `json:"extlinux_config_present"`
+	KernelPresent         bool     `json:"kernel_present"`
+	Observations          []string `json:"observations"`
+	Missing               []string `json:"missing"`
 	Hypotheses            []string `json:"hypotheses,omitempty"`
 	JournalAvailable      bool     `json:"journal_available"`
 }

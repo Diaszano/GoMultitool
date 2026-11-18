@@ -15,8 +15,6 @@ var (
 	ErrUnknownBoard = errors.New("unknown RK322x board")
 	// ErrAmbiguousBoard indicates multiple profiles match the device tree.
 	ErrAmbiguousBoard = errors.New("ambiguous RK322x board profile")
-	// ErrUnsupportedStorage indicates the profile does not list this storage kind.
-	ErrUnsupportedStorage = errors.New("storage kind is unsupported by board profile")
 )
 
 // Profile records exact compatibility and provenance metadata for a board.
@@ -77,14 +75,3 @@ func (p Profile) SupportsStorage(kind device.Kind) bool {
 	}
 	return false
 }
-
-// ValidateStorage rejects a storage kind not declared by the profile.
-func (p Profile) ValidateStorage(kind device.Kind) error {
-	if !p.SupportsStorage(kind) {
-		return ErrUnsupportedStorage
-	}
-	return nil
-}
-
-// MayModifyBootloader reports whether the profile explicitly permits such changes.
-func (p Profile) MayModifyBootloader() bool { return p.AllowBootloaderModification }

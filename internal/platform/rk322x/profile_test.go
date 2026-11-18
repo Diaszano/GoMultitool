@@ -47,10 +47,10 @@ func TestLoadProfilesAndRejectStorageNotInProfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !errors.Is(p.ValidateStorage(device.KindUSB), ErrUnsupportedStorage) {
+	if p.SupportsStorage(device.KindUSB) {
 		t.Fatal("unsupported storage accepted")
 	}
-	if p.MayModifyBootloader() {
+	if p.AllowBootloaderModification {
 		t.Fatal("unverified bootloader modification allowed")
 	}
 }
