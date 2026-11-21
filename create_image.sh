@@ -62,6 +62,12 @@ if [ ! -f "$ROOTFS_IMAGE" ]; then
 	echo -n "Creating debian base rootfs. This will take a while..."
 
 	cd "${SOURCES_PATH}/multistrap"
+	KEYRING=/usr/share/keyrings/debian-archive-keyring.gpg
+	if [ ! -r "$KEYRING" ]; then
+		echo -e "\nInstall debian-archive-keyring on the build host." >&2
+		exit 25
+	fi
+	install -D -m 0644 "$KEYRING" rootfs/etc/apt/trusted.gpg.d/bootstrap-debian.gpg || exit 25
 	multistrap -f multistrap.conf > /tmp/multistrap.log 2>&1
 
 	if [ $? -ne 0 ]; then
@@ -71,6 +77,7 @@ if [ ! -f "$ROOTFS_IMAGE" ]; then
 		exit 25
 	fi
 
+	rm -f rootfs/etc/apt/trusted.gpg.d/bootstrap-debian.gpg || exit 25
 	echo "done!"
 
 	echo -n "Creating squashfs from rootfs..."

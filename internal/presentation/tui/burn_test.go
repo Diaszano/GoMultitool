@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 
 	"github.com/Diaszano/GoMultitool/internal/application/installer"
 	"github.com/Diaszano/GoMultitool/internal/domain/device"
@@ -54,8 +55,15 @@ func burnSelectEMMC(t *testing.T, b *burnScreen, sim *appSimulation) {
 	}) {
 		t.Fatal("warning not shown before burning")
 	}
-	sim.app.QueueUpdateDraw(func() { sim.app.SetFocus(b.form) })
-	pressKey(sim.app, tcell.KeyEnter, 0)
+	confirmBurn(t, sim.app)
+}
+
+func confirmBurn(t *testing.T, app *tview.Application) {
+	t.Helper()
+	for range 3 {
+		pressKey(app, tcell.KeyTab, 0)
+		pressKey(app, tcell.KeyEnter, 0)
+	}
 }
 
 func TestBurnScreenHidesBootMediaAndBlocksBusy(t *testing.T) {
@@ -136,6 +144,65 @@ func TestBurnScreenEmptyImages(t *testing.T) {
 	}
 }
 
+func TestBurnRequiresReviewOfSelectedImageAndDestination(t *testing.T) {
+	const name = "Armbian_25.11.1_Rk322x-box_bookworm_current_6.12.59_desktop_2026-11-21.img.xz"
+	started := make(chan string, 1)
+	b, sim, _ := openBurn(t, Services{
+		Inventory: burnInventory,
+		Images: func(context.Context) ([]image.Image, error) {
+			return []image.Image{{Path: strings.Replace(name, "desktop", "minimal", 1), SizeBytes: 1e9}, {Path: name, SizeBytes: 2e9}}, nil
+		},
+		Burn: func(_ context.Context, img image.Image, _ device.Device, _ Progress) (installer.BurnResult, error) {
+			started <- img.Path
+			return installer.BurnResult{}, nil
+		},
+	})
+	sim.app.QueueUpdateDraw(func() { sim.screen.SetSize(48, 16) })
+	if !waitForApp(t, sim.app, func() bool { return simulationContains(sim.screen, "/dev/mmcblk1") }) {
+		t.Fatal("destination list was not loaded")
+	}
+	pressKey(sim.app, tcell.KeyDown, 0)
+	pressKey(sim.app, tcell.KeyEnter, 0)
+	if !waitForApp(t, sim.app, func() bool {
+		return b.form.GetButton(0).IsDisabled() && simulationContains(sim.screen, "Burn (unavailable)") &&
+			simulationContains(sim.screen, "Press Enter to select the image.")
+	}) {
+		t.Fatal("gravação disponível sem escolha explícita da imagem")
+	}
+	pressKey(sim.app, tcell.KeyTab, 0)
+	pressKey(sim.app, tcell.KeyDown, 0)
+	pressKey(sim.app, tcell.KeyEnter, 0)
+	pressKey(sim.app, tcell.KeyTab, 0)
+	if !waitForApp(t, sim.app, func() bool {
+		return simulationContains(sim.screen, "▶ …") &&
+			simulationContains(sim.screen, "desktop_2026-11-21.img.xz")
+	}) {
+		t.Fatal("o sufixo e o marcador da imagem deveriam continuar visíveis")
+	}
+	pressKey(sim.app, tcell.KeyEnter, 0)
+	if !waitForApp(t, sim.app, func() bool {
+		return simulationContains(sim.screen, "Confirm burn") &&
+			simulationContains(sim.screen, "2.0 GB") && simulationContains(sim.screen, "/dev/mmcblk1")
+	}) {
+		t.Fatal("a revisão deve mostrar arquivo, tamanho e destino")
+	}
+	pressKey(sim.app, tcell.KeyEnter, 0)
+	if !waitForApp(t, sim.app, func() bool { return b.form.GetButton(0).HasFocus() }) || len(started) != 0 {
+		t.Fatal("a opção padrão deveria cancelar sem gravar")
+	}
+	pressKey(sim.app, tcell.KeyEnter, 0)
+	pressKey(sim.app, tcell.KeyTab, 0)
+	pressKey(sim.app, tcell.KeyEnter, 0)
+	select {
+	case got := <-started:
+		if got != name {
+			t.Fatalf("imagem gravada = %q", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("a confirmação não iniciou a gravação")
+	}
+}
+
 func TestBurnScreenIgnoresEscWhileBurning(t *testing.T) {
 	release := make(chan struct{})
 	t.Cleanup(func() { close(release) })
@@ -160,8 +227,29 @@ func TestBurnScreenIgnoresEscWhileBurning(t *testing.T) {
 	pressKey(app, tcell.KeyDown, 0)
 	pressKey(app, tcell.KeyEnter, 0)
 	waitForApp(t, app, func() bool { return simulationContains(sim.screen, "Everything on") })
+	pressKey(app, tcell.KeyRight, 0)
+	pressKey(app, tcell.KeyEnter, 0)
+	pressKey(app, tcell.KeyRight, 0)
 	pressKey(app, tcell.KeyTab, 0)
-	pressKey(app, tcell.KeyTab, 0)
+	if !waitForApp(t, app, func() bool {
+		button, ok := app.GetFocus().(*tview.Button)
+		return ok && button.GetLabel() == catalog.Burn.Cancel
+	}) {
+		t.Fatal("Tab did not move focus to Cancel")
+	}
+	pressKey(app, tcell.KeyBacktab, 0)
+	pressKey(app, tcell.KeyEnter, 0)
+	if !waitForApp(t, app, func() bool { return simulationContains(sim.screen, "Confirm burn") }) {
+		t.Fatal("confirmation not shown")
+	}
+	pressKey(app, tcell.KeyEscape, 0)
+	if !waitForApp(t, app, func() bool {
+		return !simulationContains(sim.screen, "Confirm burn") && simulationContains(sim.screen, "▶ armbian.img.xz")
+	}) {
+		t.Fatal("Esc did not return to the selected image")
+	}
+	pressKey(app, tcell.KeyEnter, 0)
+	pressKey(app, tcell.KeyRight, 0)
 	pressKey(app, tcell.KeyEnter, 0)
 	if !waitForApp(t, app, func() bool { return simulationContains(sim.screen, "25%") }) {
 		t.Fatal("progress not shown")
@@ -199,9 +287,7 @@ func TestBurnScreenCtrlCCancelsBurn(t *testing.T) {
 	pressKey(app, tcell.KeyDown, 0)
 	pressKey(app, tcell.KeyEnter, 0)
 	waitForApp(t, app, func() bool { return simulationContains(sim.screen, "Everything on") })
-	pressKey(app, tcell.KeyTab, 0)
-	pressKey(app, tcell.KeyTab, 0)
-	pressKey(app, tcell.KeyEnter, 0)
+	confirmBurn(t, app)
 	if !waitForApp(t, app, func() bool { return simulationContains(sim.screen, "25%") }) {
 		t.Fatal("progress not shown")
 	}

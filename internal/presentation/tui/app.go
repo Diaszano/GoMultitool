@@ -34,6 +34,8 @@ type Services struct {
 	) (installer.BurnResult, error)
 	Backup    func(ctx context.Context, source device.Device, name string, p Progress) error
 	RunLegacy func() error
+	Reboot    func() error
+	PowerOff  func() error
 }
 
 // New builds the full-screen terminal application.
@@ -46,32 +48,55 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 	app := tview.NewApplication()
 	onHome := true
 	var list *tview.List
+	var home *tview.Grid
 	var burn *burnScreen
 	var bak *backupScreen
-	show := func(p tview.Primitive) {
+	show := func(p tview.Primitive, title, navigation string) {
 		onHome = false
-		app.SetRoot(withNavigation(p, catalog), true)
+		app.SetRoot(frame(p, catalog.ProductName, title, navigation), true)
 	}
 	goHome := func() {
 		onHome = true
-		app.SetRoot(withNavigation(list, catalog), true)
+		app.SetRoot(frame(home, catalog.ProductName, catalog.HomeTitle, catalog.HomeNav), true)
 	}
-	hardwareView := tview.NewTextView().SetDynamicColors(false).SetScrollable(true)
-	hardwareView.SetBorder(true).SetTitle(catalog.HardwareTitle)
+	showMessage := func(message string) {
+		onHome = false
+		app.SetRoot(actionModal().SetText(tview.Escape(message)).
+			AddButtons([]string{catalog.OK}).SetDoneFunc(func(int, string) { goHome() }), true)
+	}
+	confirmPower := func(prompt string, action func() error) {
+		if action == nil {
+			showMessage(catalog.PowerUnavailable)
+			return
+		}
+		onHome = false
+		app.SetRoot(actionModal().SetText(prompt).
+			AddButtons([]string{catalog.Backup.Cancel, catalog.OK}).SetDoneFunc(func(button int, _ string) {
+			if button == 1 {
+				if err := action(); err != nil {
+					showMessage(errorText(catalog, err))
+					return
+				}
+			}
+			goHome()
+		}), true)
+	}
+	hardwareView := tview.NewTextView().SetDynamicColors(false).SetScrollable(true).SetWordWrap(true)
+	hardwareView.SetBorderPadding(1, 0, 0, 0)
 
 	list = screens.Home(catalog, func(id i18n.MenuItemID) {
 		switch id {
 		case i18n.MenuBurn:
 			burn = newBurnScreen(app, s, catalog, goHome)
-			show(burn.root)
+			show(burn.root, catalog.Burn.Title, catalog.FormNav)
 			burn.load()
 		case i18n.MenuBackup:
 			bak = newBackupScreen(app, s, catalog, goHome)
-			show(bak.root)
+			show(bak.root, catalog.Backup.Title, catalog.FormNav)
 			bak.load()
 		case i18n.MenuHardware:
 			hardwareView.SetText(catalog.Loading)
-			show(hardwareView)
+			show(hardwareView, catalog.HardwareTitle, catalog.HardwareNav)
 			go func() {
 				devices, err := s.Inventory(context.Background())
 				app.QueueUpdateDraw(func() {
@@ -82,17 +107,17 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 			var err error
 			app.Suspend(func() { err = s.RunLegacy() })
 			if err != nil {
-				onHome = false
-				app.SetRoot(tview.NewModal().
-					SetText(errorText(catalog, err)).
-					AddButtons([]string{catalog.OK}).
-					SetDoneFunc(func(int, string) { goHome() }), true)
+				showMessage(errorText(catalog, err))
 			}
+		case i18n.MenuReboot:
+			confirmPower(catalog.ConfirmReboot, s.Reboot)
+		case i18n.MenuPowerOff:
+			confirmPower(catalog.ConfirmPowerOff, s.PowerOff)
 		case i18n.MenuExit:
 			app.Stop()
 		}
 	})
-	list.SetTitle(catalog.ProductName).SetBorder(true)
+	home = homeMenu(list)
 	goHome()
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		var running *atomic.Bool
@@ -120,18 +145,22 @@ func newApp(s Services, catalog i18n.Catalog) (*tview.Application, *tview.List, 
 			return nil
 		}
 		if event.Key() == tcell.KeyEscape && !onHome {
-			goHome()
+			if burn == nil || !burn.dismissReview() {
+				goHome()
+			}
 			return nil
+		}
+		if onHome && list.HasFocus() {
+			switch event.Key() {
+			case tcell.KeyLeft:
+				return tcell.NewEventKey(tcell.KeyUp, 0, event.Modifiers())
+			case tcell.KeyRight:
+				return tcell.NewEventKey(tcell.KeyDown, 0, event.Modifiers())
+			}
 		}
 		return event
 	})
 	return app, list, hardwareView
-}
-
-func withNavigation(p tview.Primitive, catalog i18n.Catalog) tview.Primitive {
-	return tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(p, 0, 1, true).
-		AddItem(tview.NewTextView().SetText(catalog.Navigation), 1, 0, false)
 }
 
 // errorText localizes known errors and prefixes the rest.

@@ -28,7 +28,7 @@ jobs:
       - name: Install image tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y dosfstools fdisk binutils multistrap ntfs-3g parted \
+          sudo apt-get install -y debian-archive-keyring dosfstools fdisk binutils multistrap ntfs-3g parted \
             qemu-user-static squashfs-tools util-linux xz-utils
       - name: Validate image fixtures
         run: sudo --preserve-env=PATH bash tests/integration/image_build_test.sh

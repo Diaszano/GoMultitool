@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -109,6 +110,14 @@ func TestOpenMissingPartition(t *testing.T) {
 		if c.name == "mount" {
 			t.Fatal("mount called")
 		}
+	}
+}
+
+func TestOpenReportsWhenBlkidCannotStart(t *testing.T) {
+	t.Setenv("PATH", "")
+	_, _, err := (Locator{}).Open(context.Background())
+	if !errors.Is(err, exec.ErrNotFound) {
+		t.Fatalf("expected the blkid lookup error, got %v", err)
 	}
 }
 
