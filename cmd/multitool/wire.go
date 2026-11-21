@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Diaszano/GoMultitool/internal/application"
@@ -32,7 +33,7 @@ var openImage = compression.Open
 
 // services wires the real Linux adapters into the TUI.
 func services(catalog linuxsys.SysfsCatalog, locator multitool.Locator) tui.Services {
-	return tui.Services{
+	s := tui.Services{
 		Inventory: discovery.Service{Catalog: catalog}.Inventory,
 		Images: func(ctx context.Context) (images []image.Image, err error) {
 			err = withWorkspace(ctx, locator, func(ws multitool.Workspace) error {
@@ -72,6 +73,28 @@ func services(catalog linuxsys.SysfsCatalog, locator multitool.Locator) tui.Serv
 			return cmd.Run()
 		},
 	}
+	if recoveryPowerAvailable() {
+		s.Reboot = func() error { return power(syscall.LINUX_REBOOT_CMD_RESTART) }
+		s.PowerOff = func() error { return power(syscall.LINUX_REBOOT_CMD_POWER_OFF) }
+	}
+	return s
+}
+
+func recoveryPowerAvailable() bool {
+	const squashfsMagic = 0x73717368
+	var fs syscall.Statfs_t
+	if os.Geteuid() != 0 || syscall.Statfs("/", &fs) != nil || fs.Type != squashfsMagic {
+		return false
+	}
+	info, err := os.Stat("/usr/local/sbin/multitool-init")
+	return err == nil && info.Mode().IsRegular() && info.Mode().Perm()&0o111 != 0
+}
+
+func power(command int) error {
+	return locked(func() error {
+		syscall.Sync()
+		return syscall.Reboot(command)
+	})
 }
 
 func burn(

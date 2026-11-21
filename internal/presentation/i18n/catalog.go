@@ -29,6 +29,10 @@ const (
 	MenuHardware MenuItemID = "hardware"
 	// MenuLegacy identifies the legacy Bash menu entry.
 	MenuLegacy MenuItemID = "legacy"
+	// MenuReboot identifies the restart action.
+	MenuReboot MenuItemID = "reboot"
+	// MenuPowerOff identifies the shutdown action.
+	MenuPowerOff MenuItemID = "poweroff"
 	// MenuExit identifies the exit entry.
 	MenuExit MenuItemID = "exit"
 )
@@ -43,8 +47,11 @@ type MenuItem struct {
 // Catalog groups all application-authored text shown to a person.
 type Catalog struct {
 	ProductName      string
-	Menu             [5]MenuItem
-	Navigation       string
+	Menu             [7]MenuItem
+	HomeTitle        string
+	HomeNav          string
+	FormNav          string
+	HardwareNav      string
 	HardwareTitle    string
 	EmptyInventory   string
 	ErrorPrefix      string
@@ -55,7 +62,11 @@ type Catalog struct {
 	UnsafeDevice     string
 	ReadbackMismatch string
 	NotSelectable    string
+	Unavailable      string
 	OK               string
+	ConfirmReboot    string
+	ConfirmPowerOff  string
+	PowerUnavailable string
 	InUseLabel       string
 	BootMediaLabel   string
 	DecimalSeparator string
@@ -71,12 +82,14 @@ type Catalog struct {
 
 // BackupTexts are the strings of the backup screen.
 type BackupTexts struct {
+	Title, PickSource                             string
 	Source, Name, Free, Start, Cancel, Cancelled  string
 	Saved, InvalidName, NoSpace, Exists, NoSource string
 }
 
 // BurnTexts are the strings of the image burn screen.
 type BurnTexts struct {
+	Title, Review, PickBoth, PickDevice, PickImage, Size     string
 	Destination, Images, SizeAtBurn, Warning, Start, Cancel  string
 	Success, CommandRate, NoImages, NoDestination, Cancelled string
 	Sizing, Verifying                                        string
@@ -104,14 +117,19 @@ func For(locale Locale) Catalog {
 	if locale == LocaleEN {
 		return Catalog{
 			ProductName: "GoMultitool",
-			Menu: [5]MenuItem{
+			Menu: [7]MenuItem{
 				{MenuBurn, "Burn image to eMMC", "Install Armbian or another image"},
 				{MenuBackup, "Back up", "Save the eMMC to the MULTITOOL partition"},
 				{MenuHardware, "Hardware information", "Inspect connected storage devices"},
 				{MenuLegacy, "Legacy menu (Bash)", "Restore, erase, steP-nand"},
+				{MenuReboot, "Reboot", "Restart the device"},
+				{MenuPowerOff, "Power off", "Shut down the device"},
 				{MenuExit, "Exit", "Leave GoMultitool"},
 			},
-			Navigation:       "↑/↓ Move • Enter Select • Esc Back • q Quit",
+			HomeTitle:        "Recovery menu",
+			HomeNav:          "↑/↓ or ←/→ Move  ·  Enter Open  ·  q Quit",
+			FormNav:          "Tab/Shift+Tab or ←/→ Focus  ·  ↑/↓ Move  ·  Enter Select  ·  Esc Back",
+			HardwareNav:      "↑/↓ Scroll  ·  Esc Back  ·  q Quit",
 			HardwareTitle:    "Storage devices",
 			EmptyInventory:   "No devices found.",
 			ErrorPrefix:      "Error: ",
@@ -122,7 +140,11 @@ func For(locale Locale) Catalog {
 			UnsafeDevice:     "This device cannot be written to.",
 			ReadbackMismatch: "Verification failed: the written data differs from the image. Burn again.",
 			NotSelectable:    "not selectable",
+			Unavailable:      "unavailable",
 			OK:               "OK",
+			ConfirmReboot:    "Restart the device now?",
+			ConfirmPowerOff:  "Shut down the device now?",
+			PowerUnavailable: "Power controls are available when started from the GoMultitool recovery image.",
 			InUseLabel:       "in use",
 			BootMediaLabel:   "boot media",
 			DecimalSeparator: ".",
@@ -133,6 +155,12 @@ func For(locale Locale) Catalog {
 			BuildLabel:       "Build",
 			Usage:            "Usage: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
 			Burn: BurnTexts{
+				Title:         "Burn image",
+				Review:        "Confirm burn",
+				PickBoth:      "Press Enter to select the destination and the image.",
+				PickDevice:    "Press Enter on the device you want to erase.",
+				PickImage:     "Press Enter to select the image.",
+				Size:          "Size",
 				Destination:   "Destination",
 				Images:        "Image",
 				SizeAtBurn:    "size computed when burning",
@@ -148,6 +176,8 @@ func For(locale Locale) Catalog {
 				Verifying:     "Verifying the written data…",
 			},
 			Backup: BackupTexts{
+				Title:       "Back up device",
+				PickSource:  "Press Enter to select the device to back up.",
 				Source:      "Source",
 				Name:        "Name",
 				Free:        "Free on MULTITOOL: %s",
@@ -164,7 +194,7 @@ func For(locale Locale) Catalog {
 	}
 	return Catalog{
 		ProductName: "GoMultitool",
-		Menu: [5]MenuItem{
+		Menu: [7]MenuItem{
 			{MenuBurn, "Gravar imagem no eMMC", "Instalar Armbian ou outra imagem"},
 			{MenuBackup, "Fazer backup", "Salvar o eMMC na partição MULTITOOL"},
 			{
@@ -173,9 +203,14 @@ func For(locale Locale) Catalog {
 				"Ver dispositivos de armazenamento conectados",
 			},
 			{MenuLegacy, "Menu antigo (Bash)", "Restaurar, apagar, steP-nand"},
+			{MenuReboot, "Reiniciar", "Reiniciar o aparelho"},
+			{MenuPowerOff, "Desligar", "Desligar o aparelho"},
 			{MenuExit, "Sair", "Fechar o GoMultitool"},
 		},
-		Navigation:       "↑/↓ navegar • Enter selecionar • Esc voltar • q sair",
+		HomeTitle:        "Menu de recuperação",
+		HomeNav:          "↑/↓ ou ←/→ navegar  ·  Enter abrir  ·  q sair",
+		FormNav:          "Tab/Shift+Tab ou ←/→ foco  ·  ↑/↓ navegar  ·  Enter selecionar  ·  Esc voltar",
+		HardwareNav:      "↑/↓ rolar  ·  Esc voltar  ·  q sair",
 		HardwareTitle:    "Dispositivos de armazenamento",
 		EmptyInventory:   "Nenhum dispositivo encontrado.",
 		ErrorPrefix:      "Erro: ",
@@ -186,7 +221,11 @@ func For(locale Locale) Catalog {
 		UnsafeDevice:     "Este dispositivo não pode ser gravado.",
 		ReadbackMismatch: "A conferência falhou: os dados gravados diferem da imagem. Grave de novo.",
 		NotSelectable:    "não selecionável",
+		Unavailable:      "indisponível",
 		OK:               "OK",
+		ConfirmReboot:    "Reiniciar o aparelho agora?",
+		ConfirmPowerOff:  "Desligar o aparelho agora?",
+		PowerUnavailable: "Os controles de energia estão disponíveis na imagem de recuperação do GoMultitool.",
 		InUseLabel:       "em uso",
 		BootMediaLabel:   "mídia de boot",
 		DecimalSeparator: ",",
@@ -197,6 +236,12 @@ func For(locale Locale) Catalog {
 		BuildLabel:       "Compilação",
 		Usage:            "Uso: multitool version | multitool hardware --json | multitool diagnose --json | multitool tui | multitool --console",
 		Burn: BurnTexts{
+			Title:         "Gravar imagem",
+			Review:        "Confirmar gravação",
+			PickBoth:      "Pressione Enter para selecionar o destino e a imagem.",
+			PickDevice:    "Pressione Enter no dispositivo que será apagado.",
+			PickImage:     "Pressione Enter para selecionar a imagem.",
+			Size:          "Tamanho",
 			Destination:   "Destino",
 			Images:        "Imagem",
 			SizeAtBurn:    "tamanho calculado ao gravar",
@@ -212,6 +257,8 @@ func For(locale Locale) Catalog {
 			Verifying:     "Conferindo a gravação…",
 		},
 		Backup: BackupTexts{
+			Title:       "Backup do dispositivo",
+			PickSource:  "Pressione Enter para selecionar o dispositivo de origem.",
 			Source:      "Origem",
 			Name:        "Nome",
 			Free:        "Livre na MULTITOOL: %s",

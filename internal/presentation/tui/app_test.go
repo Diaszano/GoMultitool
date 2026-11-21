@@ -20,13 +20,15 @@ import (
 	"github.com/Diaszano/GoMultitool/internal/presentation/i18n"
 )
 
-func TestMenuShowsFiveItems(t *testing.T) {
-	want := map[i18n.Locale][5][2]string{
+func TestMenuShowsRecoveryActions(t *testing.T) {
+	want := map[i18n.Locale][7][2]string{
 		i18n.LocalePtBR: {
 			{"Gravar imagem no eMMC", "Instalar Armbian ou outra imagem"},
 			{"Fazer backup", "Salvar o eMMC na partição MULTITOOL"},
 			{"Informações de hardware", "Ver dispositivos de armazenamento conectados"},
 			{"Menu antigo (Bash)", "Restaurar, apagar, steP-nand"},
+			{"Reiniciar", "Reiniciar o aparelho"},
+			{"Desligar", "Desligar o aparelho"},
 			{"Sair", "Fechar o GoMultitool"},
 		},
 		i18n.LocaleEN: {
@@ -34,14 +36,16 @@ func TestMenuShowsFiveItems(t *testing.T) {
 			{"Back up", "Save the eMMC to the MULTITOOL partition"},
 			{"Hardware information", "Inspect connected storage devices"},
 			{"Legacy menu (Bash)", "Restore, erase, steP-nand"},
+			{"Reboot", "Restart the device"},
+			{"Power off", "Shut down the device"},
 			{"Exit", "Leave GoMultitool"},
 		},
 	}
 	for locale, items := range want {
 		t.Run(string(locale), func(t *testing.T) {
 			_, list, _ := newApp(Services{}, i18n.For(locale))
-			if list.GetItemCount() != 5 {
-				t.Fatalf("menu entries = %d, want 5", list.GetItemCount())
+			if list.GetItemCount() != len(items) {
+				t.Fatalf("menu entries = %d, want %d", list.GetItemCount(), len(items))
 			}
 			for i, item := range items {
 				label, hint := list.GetItemText(i)
@@ -50,6 +54,42 @@ func TestMenuShowsFiveItems(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestMenuShowsHintForFocusedAction(t *testing.T) {
+	app, _, _ := newApp(Services{}, i18n.For(i18n.LocaleEN))
+	sim := startSimulation(t, app)
+	pressKey(app, tcell.KeyRight, 0)
+	if !waitForApp(t, app, func() bool {
+		return simulationContains(sim.screen, "Save the eMMC") &&
+			!simulationContains(sim.screen, "Install Armbian")
+	}) {
+		t.Fatal("the action description did not follow keyboard focus")
+	}
+	pressKey(app, tcell.KeyLeft, 0)
+	if !waitForApp(t, app, func() bool { return simulationContains(sim.screen, "Install Armbian") }) {
+		t.Fatal("Left did not return to the first action")
+	}
+}
+
+func TestHighResolutionConsoleKeepsContentCentered(t *testing.T) {
+	for _, size := range [][2]int{{160, 45}, {240, 67}} {
+		width, height := size[0], size[1]
+		screen := tcell.NewSimulationScreen("")
+		if err := screen.Init(); err != nil {
+			t.Fatal(err)
+		}
+		screen.SetSize(width, height)
+		content := tview.NewTextView().SetText("Main content")
+		root := frame(content, "GoMultitool", "Recovery menu", "Enter Open")
+		root.SetRect(0, 0, width, height)
+		root.Draw(screen)
+		x, y, w, h := content.GetRect()
+		screen.Fini()
+		if x < 8 || y < 4 || w < 80 || h < 20 || x != (width-w)/2 {
+			t.Errorf("%dx%d console has content at (%d, %d) sized %dx%d", width, height, x, y, w, h)
+		}
 	}
 }
 
@@ -108,6 +148,41 @@ func TestLegacyErrorShowsModal(t *testing.T) {
 			simulationContains(simulation.screen, "Hardware information")
 	}) {
 		t.Fatal("dismissing the modal did not return to the menu")
+	}
+}
+
+func TestPowerActionsRequireConfirmation(t *testing.T) {
+	for _, tt := range []struct {
+		index  int
+		prompt string
+	}{
+		{4, "Restart the device now?"},
+		{5, "Shut down the device now?"},
+	} {
+		t.Run(tt.prompt, func(t *testing.T) {
+			var called atomic.Int32
+			app, list, _ := newApp(Services{
+				Reboot:   func() error { called.Store(4); return nil },
+				PowerOff: func() error { called.Store(5); return nil },
+			}, i18n.For(i18n.LocaleEN))
+			sim := startSimulation(t, app)
+			app.QueueUpdateDraw(func() { list.SetCurrentItem(tt.index) })
+			pressKey(app, tcell.KeyEnter, 0)
+			if !waitForApp(t, app, func() bool { return simulationContains(sim.screen, tt.prompt) }) {
+				t.Fatal("confirmation was not shown")
+			}
+			pressKey(app, tcell.KeyEnter, 0)
+			if !waitForApp(t, app, func() bool { return simulationContains(sim.screen, "Recovery menu") }) ||
+				called.Load() != 0 {
+				t.Fatal("Enter on the default button should cancel")
+			}
+			pressKey(app, tcell.KeyEnter, 0)
+			pressKey(app, tcell.KeyRight, 0)
+			pressKey(app, tcell.KeyEnter, 0)
+			if !waitForApp(t, app, func() bool { return called.Load() == int32(tt.index) }) {
+				t.Fatalf("expected action %d after moving right and confirming, got %d", tt.index, called.Load())
+			}
+		})
 	}
 }
 
@@ -194,7 +269,7 @@ func TestTUIExitAndCtrlCStopApplication(t *testing.T) {
 const (
 	hardwareIndex = 2
 	legacyIndex   = 3
-	exitIndex     = 4
+	exitIndex     = 6
 )
 
 type appSimulation struct {

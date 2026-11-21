@@ -64,7 +64,7 @@ func TestDetectLocaleUsesFirstSupportedEnvironmentValue(t *testing.T) {
 }
 
 func TestCatalogContainsMenuInBothLocales(t *testing.T) {
-	want := [5]MenuItemID{MenuBurn, MenuBackup, MenuHardware, MenuLegacy, MenuExit}
+	want := [...]MenuItemID{MenuBurn, MenuBackup, MenuHardware, MenuLegacy, MenuReboot, MenuPowerOff, MenuExit}
 	for _, locale := range []Locale{LocalePtBR, LocaleEN} {
 		catalog := For(locale)
 		if catalog.ProductName != "GoMultitool" {

@@ -51,11 +51,14 @@ func (l Locator) Open(ctx context.Context) (Workspace, func() error, error) {
 	}
 	out, err := runner.Run(ctx, "blkid", "-l", "-o", "device", "--label", "MULTITOOL")
 	dev := strings.TrimSpace(string(out))
+	if err != nil {
+		var exit *exec.ExitError
+		if !errors.As(err, &exit) || exit.ExitCode() != 2 || dev != "" {
+			return Workspace{}, nil, fmt.Errorf("blkid: %w", err)
+		}
+	}
 	if dev == "" {
 		return Workspace{}, nil, errors.New("MULTITOOL partition not found")
-	}
-	if err != nil {
-		return Workspace{}, nil, fmt.Errorf("blkid: %w", err)
 	}
 	root, closeFn := mountedAt(proc, dev), func() error { return nil }
 	if root == "" {

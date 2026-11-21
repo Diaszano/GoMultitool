@@ -1,6 +1,6 @@
 # Legacy recovery runtime
 
-The recovery image starts `sources/multistrap/init`, mounts its labeled `MULTITOOL` partition at `/mnt`, reads `ISSUE` and `TARGET`, displays the license, then runs `sources/multistrap/multitool.sh` through `dialog` on the active console. The shell discovers MMC devices from `/sys/bus/mmc/devices` and has a special path for `/dev/rknand0`.
+The recovery image starts `sources/multistrap/init`, which prepares the `MULTITOOL` partition and launches the Go menu on `tty1`. The legacy menu reads `ISSUE` and `TARGET`, displays the license, and runs through `dialog`. The shell discovers MMC devices from `/sys/bus/mmc/devices` and has a special path for `/dev/rknand0`.
 
 ## Existing menu operations
 
@@ -12,7 +12,7 @@ The script backs up selected MMC devices as gzip streams into `MULTITOOL/backups
 
 The Go application may replace menu presentation, read-only inventory, image inspection, backup/restore orchestration, and diagnostics only as corresponding safeguards and recovery fallbacks are implemented. `create_image.sh`, board boot components, and the existing shell flow remain the fallback until equivalent behavior is validated on the reference hardware. Bootloader, kernel, and TrustZone firmware are preserved as supplied.
 
-The recovery root filesystem now includes the ARMv7 Go executable and an opt-in `multitool-init` entrypoint. The original `sbin/init` remains unchanged and launches the legacy shell menu. From its shell, `MULTITOOL_GO_RUNTIME=1 /usr/local/sbin/multitool-init` starts the Go TUI for controlled testing. `util-linux` provides the existing `mount`, `blkid`, and `lsblk` commands.
+The recovery root filesystem includes the ARMv7 Go executable and the `multitool-init` entrypoint. Boot returns to the Go menu after a normal exit and falls back to the legacy menu if the Go entrypoint or executable is missing or the Go process fails. The Go menu also offers **Legacy menu (Bash)** for operations still handled by the shell. `util-linux` provides `setsid`, `mount`, `blkid`, and `lsblk`.
 
 ## Source and image evidence
 

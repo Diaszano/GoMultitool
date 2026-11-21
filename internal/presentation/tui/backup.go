@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -41,20 +42,22 @@ func newBackupScreen(
 ) *backupScreen {
 	b := &backupScreen{app: app, services: s, catalog: catalog}
 	t := catalog.Backup
-	b.list = tview.NewList().ShowSecondaryText(false)
-	b.list.SetBorder(true).SetTitle(t.Source)
+	b.list = styleList(tview.NewList().ShowSecondaryText(false))
+	stylePanel(b.list.Box, t.Source)
 	b.name = tview.NewInputField().SetLabel(t.Name + ": ").
+		SetLabelColor(textColor).
+		SetFieldBackgroundColor(mutedColor).SetFieldTextColor(tcell.ColorBlack).
 		SetText("tvbox-backup-" + time.Now().Format("2006-01-02"))
-	b.free = tview.NewTextView()
-	b.status = tview.NewTextView()
-	b.form = tview.NewForm().
+	b.free = tview.NewTextView().SetTextColor(mutedColor)
+	b.status = statusView(catalog.Loading)
+	b.form = actionForm().
 		AddButton(t.Start, b.start).
 		AddButton(t.Cancel, func() {
 			if !b.running.Load() {
 				back()
 			}
 		})
-	b.form.GetButton(0).SetDisabled(true)
+	b.updateButton()
 	nameRow := tview.NewFlex().
 		AddItem(b.name, 0, 1, false).
 		AddItem(tview.NewTextView().SetText(backupSuffix), len(backupSuffix)+1, 0, false)
@@ -64,26 +67,7 @@ func newBackupScreen(
 		AddItem(b.free, 1, 0, false).
 		AddItem(b.status, 3, 0, false).
 		AddItem(b.form, 3, 0, false)
-	order := []tview.Primitive{b.list, b.name, b.form}
-	b.root.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() != tcell.KeyTab && event.Key() != tcell.KeyBacktab {
-			return event
-		}
-		if b.running.Load() {
-			return nil
-		}
-		step := 1
-		if event.Key() == tcell.KeyBacktab {
-			step = len(order) - 1
-		}
-		for i, p := range order {
-			if p.HasFocus() {
-				b.app.SetFocus(order[(i+step)%len(order)])
-				break
-			}
-		}
-		return nil
-	})
+	b.root.SetInputCapture(focusNavigation(app, b.running.Load, b.list, b.name, b.form.GetButton(0), b.form.GetButton(1)))
 	b.list.SetSelectedFunc(func(i int, _ string, _ string, _ rune) { b.selectSource(i) })
 	return b
 }
@@ -113,8 +97,10 @@ func (b *backupScreen) load() {
 			switch {
 			case derr != nil:
 				b.status.SetText(errorText(b.catalog, derr))
-			case len(b.devices) == 0:
+			case !slices.ContainsFunc(b.devices, availableDevice):
 				b.status.SetText(b.catalog.Backup.NoSource)
+			default:
+				b.status.SetText(b.catalog.Backup.PickSource)
 			}
 			b.updateButton()
 		})
@@ -122,10 +108,11 @@ func (b *backupScreen) load() {
 }
 
 func (b *backupScreen) selectSource(i int) {
-	if b.running.Load() || i < 0 || i >= len(b.devices) || blocked(b.devices[i]) {
+	if b.running.Load() || i < 0 || i >= len(b.devices) || !availableDevice(b.devices[i]) {
 		return
 	}
 	b.target = &b.devices[i]
+	b.status.SetText(b.catalog.DeviceLine(*b.target))
 	for j, d := range b.devices {
 		b.list.SetItemText(j, markedDevice(b.catalog, b.target, d), "")
 	}
@@ -133,7 +120,7 @@ func (b *backupScreen) selectSource(i int) {
 }
 
 func (b *backupScreen) updateButton() {
-	b.form.GetButton(0).SetDisabled(b.running.Load() || b.target == nil)
+	setActionDisabled(b.form.GetButton(0), b.catalog.Backup.Start, b.catalog.Unavailable, b.running.Load() || b.target == nil)
 }
 
 // start runs on the UI goroutine (button handler).
