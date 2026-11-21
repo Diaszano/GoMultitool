@@ -74,7 +74,7 @@ for path in LICENSE bsp/uboot.img; do
   }
 done
 [[ -d "$mount_dir/ntfs/images" && -s "$mount_dir/ntfs/images/multitool" ]]
-readelf -h "$mount_dir/ntfs/images/multitool" | grep -q 'Machine:.*ARM'
+LC_ALL=C readelf -h "$mount_dir/ntfs/images/multitool" | grep -E 'Machine:[[:space:]]+ARM$' > /dev/null
 for path in kernel.img rk322x-box.dtb extlinux/extlinux.conf; do
   [[ -s "$mount_dir/boot/$path" ]] || {
     echo "missing boot partition file: $path" >&2
@@ -86,4 +86,4 @@ if grep -Eq '#(FAT|SQUASHFS)_PARTUUID#' "$mount_dir/boot/extlinux/extlinux.conf"
   exit 1
 fi
 [[ -s "$mount_dir/rootfs/usr/local/bin/multitool" ]]
-readelf -h "$mount_dir/rootfs/usr/local/bin/multitool" | grep -q 'Machine:.*ARM'
+LC_ALL=C readelf -h "$mount_dir/rootfs/usr/local/bin/multitool" | grep -E 'Machine:[[:space:]]+ARM$' > /dev/null

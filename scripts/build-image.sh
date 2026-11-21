@@ -77,7 +77,10 @@ cleanup() {
 trap cleanup EXIT
 
 bash "$root/scripts/build-armv7.sh" "$temp_dir/multitool"
-readelf -h "$temp_dir/multitool" | grep -q 'Machine:.*ARM'
+LC_ALL=C readelf -h "$temp_dir/multitool" | grep -E 'Machine:[[:space:]]+ARM$' > /dev/null || {
+  echo 'expected an ARM executable from the ARMv7 build' >&2
+  exit 1
+}
 bash "$root/build/rootfs/install-multitool.sh" "$root/sources/multistrap/overlays" "$temp_dir/multitool"
 (cd "$root" && ROOTFS_IMAGE="$temp_dir/root.img" bash create_image.sh "$target")
 
